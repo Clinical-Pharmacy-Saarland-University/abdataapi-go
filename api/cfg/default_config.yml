@@ -1,0 +1,30 @@
+meta:
+  api_name: "ABDATA API"
+  api_description: "A REST-like API to access the ABDATA Database."
+  api_version: "0.0.1"
+  api_url: "https://abdata.clinicalpharmacy.me/"
+server:
+  read_write_timeout: "120s"
+  idle_timeout: "30s"
+  address: ":3333"
+log:
+  file_name: "./tmp/abdata_api.log"
+  level: "INFO"
+  max_size: 50
+  max_backups: 3
+database:
+  db_name: "abdata"
+  max_open_conns: 50
+  max_idle_conns: 10
+  max_conn_lifetime: "1h"
+auth_token:
+  access_expiration_time: "15m"
+  refresh_expiration_time: "24h"
+  issuer: "https://abdata.clinicalpharmacy.me/"
+reset_token:
+  expiration_time: "48h"
+  retry_interval: "24h"
+limits:
+  interaction_drugs: 50
+  batch_queries: 100
+  batch_jobs: 25
