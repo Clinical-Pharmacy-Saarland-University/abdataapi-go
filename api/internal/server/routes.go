@@ -75,7 +75,10 @@ func RegisterInteractionRoutes(r *gin.RouterGroup, resourceHandle *handle.Resour
 
 	profiles := r.Group("/interactions")
 	{
+		profiles.GET("/description", c.GetInterDescription)
 		profiles.GET("/pzns", c.GetInterPZNs)
 		profiles.POST("/pzns", c.PostInterPZNs)
+		profiles.GET("/compounds", c.GetInterCompounds)
+		profiles.POST("/compounds", c.PostInterCompounds)
 	}
 }

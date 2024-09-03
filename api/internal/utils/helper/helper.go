@@ -1,5 +1,7 @@
 package helper
 
+import "strings"
+
 func IsUnique[T comparable](slice []T) bool {
 	unique := make(map[T]struct{}, len(slice))
 	for _, v := range slice {
@@ -23,6 +25,22 @@ func SetDifference[T comparable](a, b []T) []T {
 	}
 
 	return diff
+}
+
+func StrSetDifference(a, b []string) []string {
+	bMap := make(map[string]struct{})
+	for _, item := range b {
+		bMap[strings.ToLower(item)] = struct{}{}
+	}
+
+	var result []string
+	for _, item := range a {
+		if _, found := bMap[strings.ToLower(item)]; !found {
+			result = append(result, item)
+		}
+	}
+
+	return result
 }
 
 // UpdateField updates 'to' with the value of 'from' if 'from' is not nil
