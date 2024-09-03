@@ -35,9 +35,9 @@ func New(config *cfg.APIConfig, debug bool) (*Server, error) {
 	}
 
 	// migrate database
-	// if err = database.Migrate(db); err != nil {
-	// 	return nil, fmt.Errorf("cannot migrate database: %w", err)
-	// }
+	if err = database.Migrate(gorm); err != nil {
+		return nil, fmt.Errorf("cannot migrate database: %w", err)
+	}
 
 	// setup handler
 	resourceHandle := handle.NewResourceHandle(
@@ -106,9 +106,9 @@ func (r *Server) Run() {
 func registerRoutes(r *gin.Engine, resourceHandle *handle.ResourceHandle) {
 	api := r.Group("/api")
 
-	//RegisterSysRoutes(api, resourceHandle)
-	//RegisterUserRoutes(api, resourceHandle)
-	//RegisterAdminRoutes(api, resourceHandle)
+	RegisterSysRoutes(api, resourceHandle)
+	RegisterUserRoutes(api, resourceHandle)
+	RegisterAdminRoutes(api, resourceHandle)
 	RegisterFormulationRoutes(api, resourceHandle)
 	RegisterInteractionRoutes(api, resourceHandle)
 	RegisterADRRoutes(api, resourceHandle)
