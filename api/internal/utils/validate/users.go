@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
-	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -129,37 +128,6 @@ func QueryRetry(lastTry time.Time, waitTime time.Duration) error {
 
 	if !retryAllowed {
 		return errors.New("retry not allowed yet")
-	}
-
-	return nil
-}
-
-func PZN(pzn string) error {
-	if len(pzn) != 8 || !regexp.MustCompile(`^\d{8}$`).MatchString(pzn) {
-		return fmt.Errorf("PZN `%s` must be 8 digits", pzn)
-	}
-
-	// checksum calculation
-	sum := 0
-	for i := range [7]int{} {
-		sum += int(pzn[i]-'0') * (i + 1)
-	}
-
-	rem := sum % 11
-
-	if rem == 10 || rem != int(pzn[7]-'0') {
-		return fmt.Errorf("checksum test for `%s` failed", pzn)
-	}
-
-	return nil
-}
-
-func PZNBatch(pzns []string) error {
-	for _, pzn := range pzns {
-		err := PZN(pzn)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -43,6 +43,16 @@ func StrSetDifference(a, b []string) []string {
 	return result
 }
 
+// SwapMap returns a new map with the keys and values of the input map swapped.
+// The input map must have unique values.
+func SwapMap[K comparable, V comparable](m map[K]V) map[V]K {
+	switchedMap := make(map[V]K, len(m))
+	for key, value := range m {
+		switchedMap[value] = key
+	}
+	return switchedMap
+}
+
 // UpdateField updates 'to' with the value of 'from' if 'from' is not nil
 // and validates the new value with the provided validator function.
 func UpdateField[T any](to *T, from *T, validator func(T) error) error {

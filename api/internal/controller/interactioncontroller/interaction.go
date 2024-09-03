@@ -1,11 +1,11 @@
 package interactioncontroller
 
 import (
-	"errors"
 	"fmt"
 	"maps"
 	"net/http"
 	"observeddb-go-api/cfg"
+	"observeddb-go-api/internal/controller/common"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/utils/apierr"
 	"observeddb-go-api/internal/utils/format"
@@ -36,11 +36,11 @@ func NewInteractionController(resourceHandle *handle.ResourceHandle) *Interactio
 	return &InteractionController{
 		DB:                     resourceHandle.SQLX,
 		Limits:                 resourceHandle.Limits,
-		PlausibilityTranslator: format.NewPlausibilityTranslator(),
-		RelevanceTranslator:    format.NewRelevanceTranslator(),
-		FrequencyTranslator:    format.NewFrequencyTranslator(),
-		CredibilityTranslator:  format.NewCredibilityTranslator(),
-		DirectionTranslator:    format.NewDirectionTranslator(),
+		PlausibilityTranslator: format.NewIntPlausibilityTranslator(),
+		RelevanceTranslator:    format.NewIntRelevanceTranslator(),
+		FrequencyTranslator:    format.NewIntFrequencyTranslator(),
+		CredibilityTranslator:  format.NewIntCredibilityTranslator(),
+		DirectionTranslator:    format.NewIntDirectionTranslator(),
 		DescriptionStruct:      format.Description(),
 	}
 }
@@ -99,7 +99,7 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 				<-semaphore
 			}()
 
-			result, err := fetchPZNInteractions(query.PZNs, db, ic, query.DetailedDesc)
+			result, err := fetchPznInteractions(query.PZNs, db, ic, query.DetailedDesc)
 			results[idx] = BatchResult{q.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
@@ -127,7 +127,7 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 
 	pzns := strings.Split(query.PZNs, ",")
 
-	result, err := fetchPZNInteractions(pzns, ic.DB, ic, query.DetailedDesc)
+	result, err := fetchPznInteractions(pzns, ic.DB, ic, query.DetailedDesc)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -245,11 +245,11 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 	fetchDoses bool,
 	detailedDesc bool,
 ) ([]CompoundInteraction, error) {
-	if err := validateCompounds(compounds, ic.Limits.InteractionDrugs); err != nil {
+	if err := validate.Compounds(compounds, ic.Limits.InteractionDrugs); err != nil {
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
 	}
 
-	stoCompoundMap, err := fetchStoCompoundPairs(db, compounds)
+	stoCompoundMap, err := common.StoToCompoundMap(db, compounds)
 	if err != nil {
 		return nil, apierr.New(http.StatusInternalServerError, err.Error())
 	}
@@ -347,26 +347,26 @@ type PZNInteraction struct {
 	PZNR         string  `json:"pzn_right"`
 }
 
-func fetchPZNInteractions(
+func fetchPznInteractions(
 	pzns []string,
 	db *sqlx.DB,
 	ic *InteractionController,
 	detailedDesc bool,
 ) ([]PZNInteraction, error) {
-	if err := validatePZNS(pzns, ic.Limits.InteractionDrugs); err != nil {
+	if err := validate.PZNs(pzns, 2, ic.Limits.InteractionDrugs); err != nil {
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
 	}
 
-	famPZNMap, err := fetchFamPZNPairs(db, pzns)
+	famPznMap, err := common.FamToPznMap(db, pzns)
 	if err != nil {
 		return nil, apierr.New(http.StatusInternalServerError, err.Error())
 	}
 
-	if diff := helper.SetDifference(pzns, slices.Collect(maps.Values(famPZNMap))); len(diff) > 0 {
+	if diff := helper.SetDifference(pzns, slices.Collect(maps.Values(famPznMap))); len(diff) > 0 {
 		return nil, apierr.New(http.StatusNotFound, fmt.Sprintf("PZNs not found: %s", strings.Join(diff, ", ")))
 	}
 
-	fams := slices.Collect(maps.Keys(famPZNMap))
+	fams := slices.Collect(maps.Keys(famPznMap))
 	queryBuilder := squirrel.Select(
 		"INT_C.Plausibilitaet",
 		"INT_C.Relevanz",
@@ -411,93 +411,12 @@ func fetchPZNInteractions(
 			Frequency:    ic.FrequencyTranslator(interaction.Frequency, detailedDesc),
 			Credibility:  ic.CredibilityTranslator(interaction.Credibility, detailedDesc),
 			Direction:    ic.DirectionTranslator(interaction.Direction, detailedDesc),
-			PZNL:         famPZNMap[interaction.KeyFAML],
-			PZNR:         famPZNMap[interaction.KeyFAMR],
+			PZNL:         famPznMap[interaction.KeyFAML],
+			PZNR:         famPznMap[interaction.KeyFAMR],
 		}
 	}
 
 	return results, nil
-}
-
-func validatePZNS(pzns []string, maxdrugs int) error {
-	if len(pzns) < 2 {
-		return errors.New("at least two PZNs must be provided")
-	}
-
-	if len(pzns) > maxdrugs {
-		return fmt.Errorf("too many PZNs provided. Maximum is %d", maxdrugs)
-	}
-
-	if err := validate.PZNBatch(pzns); err != nil {
-		return fmt.Errorf("invalid PZNs provided: %s", err.Error())
-	}
-
-	if !helper.IsUnique(pzns) {
-		return errors.New("duplicate PZNs provided")
-	}
-
-	return nil
-}
-
-func validateCompounds(compounds []string, maxdrugs int) error {
-	if len(compounds) < 2 {
-		return errors.New("at least two compounds must be provided")
-	}
-
-	if len(compounds) > maxdrugs {
-		return fmt.Errorf("too many compounds provided. Maximum is %d", maxdrugs)
-	}
-
-	if !helper.IsUnique(compounds) {
-		return errors.New("duplicate compounds provided")
-	}
-
-	return nil
-}
-
-func fetchFamPZNPairs(db *sqlx.DB, pzns []string) (map[uint64]string, error) {
-	n := len(pzns)
-	queryBuilder := squirrel.Select("PZN", "Key_FAM").From("PAE_DB").Where(squirrel.Eq{"PZN": pzns}).Limit(uint64(n))
-	query, args, _ := queryBuilder.ToSql()
-
-	var paePairs []struct {
-		PZN    string `db:"PZN"`
-		KeyFAM uint64 `db:"Key_FAM"`
-	}
-
-	err := db.Select(&paePairs, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching FAM-PZN pairs: %w", err)
-	}
-
-	famPZNMap := make(map[uint64]string, len(paePairs))
-	for _, paePair := range paePairs {
-		famPZNMap[paePair.KeyFAM] = paePair.PZN
-	}
-
-	return famPZNMap, nil
-}
-
-func fetchStoCompoundPairs(db *sqlx.DB, compounds []string) (map[uint64]string, error) {
-	queryBuilder := squirrel.Select("Name", "Key_STO").From("SNA_DB").Where(squirrel.Eq{"Name": compounds})
-	query, args, _ := queryBuilder.ToSql()
-
-	var snaPairs []struct {
-		Name   string `db:"Name"`
-		KeySTO uint64 `db:"Key_STO"`
-	}
-
-	err := db.Select(&snaPairs, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching Compound-STO pairs: %w", err)
-	}
-
-	stoCompoundMap := make(map[uint64]string)
-	for _, pair := range snaPairs {
-		stoCompoundMap[pair.KeySTO] = pair.Name
-	}
-
-	return stoCompoundMap, nil
 }
 
 type CompoundDose struct {

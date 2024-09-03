@@ -1,6 +1,6 @@
 package format
 
-func NewPlausibilityTranslator() func(*int, bool) *string {
+func NewIntPlausibilityTranslator() func(*int, bool) *string {
 	translator := map[int]string{
 		10: "unknown mechanism",
 		20: "plausible mechanism",
@@ -16,7 +16,7 @@ func NewPlausibilityTranslator() func(*int, bool) *string {
 	return baseTranslatorFactory(translator, detailedTranslator)
 }
 
-func NewRelevanceTranslator() func(*int, bool) *string {
+func NewIntRelevanceTranslator() func(*int, bool) *string {
 	translator := map[int]string{
 		0:  "no statement possible",
 		10: "no interaction expected",
@@ -40,7 +40,7 @@ func NewRelevanceTranslator() func(*int, bool) *string {
 	return baseTranslatorFactory(translator, detailedTranslator)
 }
 
-func NewFrequencyTranslator() func(*int, bool) *string {
+func NewIntFrequencyTranslator() func(*int, bool) *string {
 	translator := map[int]string{
 		1: "very common",
 		2: "common",
@@ -62,7 +62,7 @@ func NewFrequencyTranslator() func(*int, bool) *string {
 	return baseTranslatorFactory(translator, detailedTranslator)
 }
 
-func NewCredibilityTranslator() func(*int, bool) *string {
+func NewIntCredibilityTranslator() func(*int, bool) *string {
 	translator := map[int]string{
 		10: "not known",
 		20: "insufficient",
@@ -82,7 +82,7 @@ func NewCredibilityTranslator() func(*int, bool) *string {
 	return baseTranslatorFactory(translator, detailedTranslator)
 }
 
-func NewDirectionTranslator() func(*int, bool) *string {
+func NewIntDirectionTranslator() func(*int, bool) *string {
 	translator := map[int]string{
 		0: "undirected interaction",
 		1: "unidirectional interaction",
@@ -138,10 +138,10 @@ func Description() any {
 		Credibility  Desc `json:"credibility"`
 		Direction    Desc `json:"direction"`
 	}{
-		Plausibility: getDescriptions([]int{10, 20, 30}, NewPlausibilityTranslator()),
-		Relevance:    getDescriptions([]int{0, 10, 20, 30, 40, 50, 60}, NewRelevanceTranslator()),
-		Frequency:    getDescriptions([]int{1, 2, 3, 4, 5, 6}, NewFrequencyTranslator()),
-		Credibility:  getDescriptions([]int{10, 20, 30, 40, 50}, NewCredibilityTranslator()),
-		Direction:    getDescriptions([]int{0, 1, 2}, NewDirectionTranslator()),
+		Plausibility: getDescriptions([]int{10, 20, 30}, NewIntPlausibilityTranslator()),
+		Relevance:    getDescriptions([]int{0, 10, 20, 30, 40, 50, 60}, NewIntRelevanceTranslator()),
+		Frequency:    getDescriptions([]int{1, 2, 3, 4, 5, 6}, NewIntFrequencyTranslator()),
+		Credibility:  getDescriptions([]int{10, 20, 30, 40, 50}, NewIntCredibilityTranslator()),
+		Direction:    getDescriptions([]int{0, 1, 2}, NewIntDirectionTranslator()),
 	}
 }

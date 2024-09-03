@@ -2,6 +2,7 @@ package server
 
 import (
 	"observeddb-go-api/internal/controller/admincontroller"
+	"observeddb-go-api/internal/controller/adrcontroller"
 	"observeddb-go-api/internal/controller/formulationcontroller"
 	"observeddb-go-api/internal/controller/interactioncontroller"
 	"observeddb-go-api/internal/controller/syscontroller"
@@ -80,5 +81,14 @@ func RegisterInteractionRoutes(r *gin.RouterGroup, resourceHandle *handle.Resour
 		profiles.POST("/pzns", c.PostInterPZNs)
 		profiles.GET("/compounds", c.GetInterCompounds)
 		profiles.POST("/compounds", c.PostInterCompounds)
+	}
+}
+
+func RegisterADRRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
+	c := adrcontroller.NewADRController(resourceHandle)
+
+	profiles := r.Group("/adrs")
+	{
+		profiles.GET("/pzns", c.GetAdrsForPZNs)
 	}
 }
