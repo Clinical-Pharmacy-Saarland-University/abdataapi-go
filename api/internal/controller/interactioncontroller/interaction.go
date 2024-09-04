@@ -232,8 +232,8 @@ type CompoundInteraction struct {
 	Frequency    *string         `json:"frequency"`
 	Credibility  *string         `json:"credibility"`
 	Direction    *string         `json:"direction"`
-	CompoundL    string          `json:"compound_left"`
-	CompoundR    string          `json:"compound_right"`
+	CompoundsL   []string        `json:"compounds_left"`
+	CompoundsR   []string        `json:"compounds_right"`
 	DosesL       []*CompoundDose `json:"doses_left"`
 	DosesR       []*CompoundDose `json:"doses_right"`
 }
@@ -249,12 +249,17 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
 	}
 
-	stoCompoundMap, err := common.StoToCompoundMap(db, compounds)
+	stoCompoundMap, err := common.StoToCompoundsMap(db, compounds)
 	if err != nil {
 		return nil, apierr.New(http.StatusInternalServerError, err.Error())
 	}
 
-	if diff := helper.StrSetDifference(compounds, slices.Collect(maps.Values(stoCompoundMap))); len(diff) > 0 {
+	// check if all compounds are in the database
+	var dbCompounds []string
+	for bucket := range maps.Values(stoCompoundMap) {
+		dbCompounds = append(dbCompounds, bucket...)
+	}
+	if diff := helper.SetDifference(compounds, dbCompounds); len(diff) > 0 {
 		return nil, apierr.New(http.StatusNotFound, fmt.Sprintf("Compounds not found: %s", strings.Join(diff, ", ")))
 	}
 
@@ -304,8 +309,8 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 			Frequency:    ic.FrequencyTranslator(interaction.Frequency, detailedDesc),
 			Credibility:  ic.CredibilityTranslator(interaction.Credibility, detailedDesc),
 			Direction:    ic.DirectionTranslator(interaction.Direction, detailedDesc),
-			CompoundL:    stoCompoundMap[interaction.KeyStoL],
-			CompoundR:    stoCompoundMap[interaction.KeyStoR],
+			CompoundsL:   stoCompoundMap[interaction.KeyStoL],
+			CompoundsR:   stoCompoundMap[interaction.KeyStoR],
 		}
 	}
 
@@ -326,7 +331,7 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 				if dose.KeyINT == interaction.KeyINT {
 					if dose.KeySTO == interaction.KeyStoL {
 						results[i].DosesL = append(results[i].DosesL, &dose)
-					} else {
+					} else if dose.KeySTO == interaction.KeyStoR {
 						results[i].DosesR = append(results[i].DosesR, &dose)
 					}
 				}
@@ -338,13 +343,13 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 }
 
 type PZNInteraction struct {
-	Plausibility *string `json:"plausibility"`
-	Relevance    *string `json:"relevance"`
-	Frequency    *string `json:"frequency"`
-	Credibility  *string `json:"credibility"`
-	Direction    *string `json:"direction"`
-	PZNL         string  `json:"pzn_left"`
-	PZNR         string  `json:"pzn_right"`
+	Plausibility *string  `json:"plausibility"`
+	Relevance    *string  `json:"relevance"`
+	Frequency    *string  `json:"frequency"`
+	Credibility  *string  `json:"credibility"`
+	Direction    *string  `json:"direction"`
+	PZNL         []string `json:"pzn_left"`
+	PZNR         []string `json:"pzn_right"`
 }
 
 func fetchPznInteractions(
@@ -374,7 +379,9 @@ func fetchPznInteractions(
 		"INT_C.Quellenbewertung",
 		"INT_C.Richtung",
 		"FZI_C1.Key_FAM AS Key_FAM_R",
-		"FZI_C2.Key_FAM AS Key_FAM_L").
+		"FZI_C2.Key_FAM AS Key_FAM_L",
+		"SZI_C1.Key_STO AS Key_STO_R",
+		"SZI_C2.Key_STO AS Key_STO_L").
 		From("FZI_C AS FZI_C1").
 		LeftJoin("SZI_C AS SZI_C1 ON FZI_C1.Key_INT = SZI_C1.Key_INT AND FZI_C1.Key_STO = SZI_C1.Key_STO").
 		Join("FZI_C AS FZI_C2 ON FZI_C1.Key_INT = FZI_C2.Key_INT").
@@ -388,45 +395,88 @@ func fetchPznInteractions(
 		LeftJoin("INT_C ON FZI_C1.Key_INT = INT_C.Key_INT")
 
 	query, args, _ := queryBuilder.ToSql()
-	var dbInteractions []struct {
-		Plausibility *int   `db:"Plausibilitaet"`
-		Relevance    *int   `db:"Relevanz"`
-		Frequency    *int   `db:"Haeufigkeit"`
-		Credibility  *int   `db:"Quellenbewertung"`
-		Direction    *int   `db:"Richtung"`
-		KeyFAML      uint64 `db:"Key_FAM_L"`
-		KeyFAMR      uint64 `db:"Key_FAM_R"`
-	}
 
-	err = db.Select(&dbInteractions, query, args...)
+	var dbInteractions []dbInteraction
+	err = db.Select(&dbInteractions, query, args...) //nolint:musttag // need untaged fields
 	if err != nil {
 		return nil, fmt.Errorf("error fetching interactions: %w", err)
 	}
 
-	var results = make([]PZNInteraction, len(dbInteractions))
-	for i, interaction := range dbInteractions {
+	results := mapCompoundInteracions(dbInteractions, famPznMap, ic, detailedDesc)
+	return results, nil
+}
+
+type dbInteraction struct {
+	Plausibility  *int   `db:"Plausibilitaet"`
+	Relevance     *int   `db:"Relevanz"`
+	Frequency     *int   `db:"Haeufigkeit"`
+	Credibility   *int   `db:"Quellenbewertung"`
+	Direction     *int   `db:"Richtung"`
+	KeyFAML       uint64 `db:"Key_FAM_L"`
+	KeyFAMR       uint64 `db:"Key_FAM_R"`
+	KeyStoL       uint64 `db:"Key_STO_L"`
+	KeyStoR       uint64 `db:"Key_STO_R"`
+	KeyFAMLBucket []uint64
+	KeyFAMRBucket []uint64
+}
+
+func mapCompoundInteracions(
+	interactionTable []dbInteraction,
+	famPznMap map[uint64]string,
+	ic *InteractionController,
+	detailedDesc bool,
+) []PZNInteraction {
+	type StoPair struct {
+		KeyStoL uint64
+		KeyStoR uint64
+	}
+
+	stoMap := make(map[StoPair][]*dbInteraction)
+	for _, interaction := range interactionTable {
+		pair := StoPair{interaction.KeyStoL, interaction.KeyStoR}
+		stoMap[pair] = append(stoMap[pair], &interaction)
+	}
+
+	var curated []*dbInteraction
+	for _, interactions := range stoMap {
+		base := interactions[0]
+		for _, tuples := range interactions {
+			base.KeyFAMLBucket = append(base.KeyFAMLBucket, tuples.KeyFAML)
+			base.KeyFAMRBucket = append(base.KeyFAMRBucket, tuples.KeyFAMR)
+		}
+		base.KeyFAMLBucket = helper.Unique(base.KeyFAMLBucket)
+		base.KeyFAMRBucket = helper.Unique(base.KeyFAMRBucket)
+		curated = append(curated, base)
+	}
+
+	var results = make([]PZNInteraction, len(curated))
+	for i, interaction := range curated {
 		results[i] = PZNInteraction{
 			Plausibility: ic.PlausibilityTranslator(interaction.Plausibility, detailedDesc),
 			Relevance:    ic.RelevanceTranslator(interaction.Relevance, detailedDesc),
 			Frequency:    ic.FrequencyTranslator(interaction.Frequency, detailedDesc),
 			Credibility:  ic.CredibilityTranslator(interaction.Credibility, detailedDesc),
 			Direction:    ic.DirectionTranslator(interaction.Direction, detailedDesc),
-			PZNL:         famPznMap[interaction.KeyFAML],
-			PZNR:         famPznMap[interaction.KeyFAMR],
+		}
+		for _, keyFam := range interaction.KeyFAMLBucket {
+			results[i].PZNL = append(results[i].PZNL, famPznMap[keyFam])
+		}
+		for _, keyFam := range interaction.KeyFAMRBucket {
+			results[i].PZNR = append(results[i].PZNR, famPznMap[keyFam])
 		}
 	}
 
-	return results, nil
+	return results
 }
 
 type CompoundDose struct {
-	KeySTO              uint64   `db:"Key_STO" json:"-"`
-	KeyINT              uint64   `db:"Key_INT" json:"-"`
-	Value               *float64 `db:"Zahl" json:"value"`
-	Unit                *string  `db:"Einheit" json:"unit"`
-	Suffix              *string  `db:"Suffix" json:"suffix"`
-	DosageForm          *string  `db:"Key_DAR" json:"dosage_form"`
-	EquivalentSubstance bool     `db:"ES" json:"equivalent_substance"`
+	KeySTO          uint64   `db:"Key_STO" json:"-"`
+	KeyINT          uint64   `db:"Key_INT" json:"-"`
+	Value           *float64 `db:"Zahl" json:"value"`
+	Unit            *string  `db:"Einheit" json:"unit"`
+	Suffix          *string  `db:"Suffix" json:"suffix"`
+	DosageForm      *string  `db:"Key_DAR" json:"dosage_form"`
+	ActiveSubstance bool     `db:"ES" json:"active_substance"`
 }
 
 func fetchCompoundDoses(db *sqlx.DB, keyInt, keySto []uint64) ([]CompoundDose, error) {
@@ -437,20 +487,19 @@ func fetchCompoundDoses(db *sqlx.DB, keyInt, keySto []uint64) ([]CompoundDose, e
 		"Einheit",
 		"Suffix",
 		"Key_DAR",
-		"Entsprichtstoff IS NULL AS ES").
+		"Entsprichtstoff IS NOT NULL AS ES").
 		From("FZI_C").
 		Distinct().
 		LeftJoin("FAI_DB ON FAI_DB.Key_FAM = FZI_C.Key_FAM").
 		LeftJoin("FAM_DB ON FAI_DB.Key_FAM = FAM_DB.Key_FAM").
 		Where(squirrel.And{
 			squirrel.Eq{"FZI_C.Key_INT": keyInt},
-			squirrel.Eq{"FZI_C.Key_STO": keySto},
+			squirrel.Eq{"FAI_DB.Key_STO": keySto},
 			squirrel.Eq{"FAI_DB.Stofftyp": 1},
 		}).
 		OrderBy("FZI_C.Key_INT")
 
 	query, args, _ := queryBuilder.ToSql()
-
 	var compoundDoses []CompoundDose
 	err := db.Select(&compoundDoses, query, args...)
 	if err != nil {
