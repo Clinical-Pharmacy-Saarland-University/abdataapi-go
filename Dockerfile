@@ -13,7 +13,7 @@ RUN apk update && apk add --no-cache git && \
 
 FROM alpine:latest
 
-LABEL org.opencontainers.image.source=https://github.com/Clinical-Pharmacy-Saarland-University/abdataapi-go
+LABEL org.opencontainers.image.source=https://github.com/clinical-pharmacy-saarland-university/abdataapi-go
 LABEL org.opencontainers.image.description="ABDATA Database API"
 LABEL org.opencontainers.image.licenses=MIT
 

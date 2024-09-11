@@ -23,5 +23,5 @@ jobs:
 
       - name: Build and push the image
         run: |
-          docker build --no-cache . --tag ghcr.io/Clinical-Pharmacy-Saarland-University/abdataapi-go:latest
-          docker push ghcr.io/Clinical-Pharmacy-Saarland-University/abdataapi-go:latest
+          docker build --no-cache . --tag ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
+          docker push ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
