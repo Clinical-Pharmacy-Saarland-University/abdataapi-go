@@ -33,6 +33,21 @@ func NewADRController(resourceHandle *handle.ResourceHandle) *ADRController {
 	}
 }
 
+// @Summary		List ADRs for PZNs
+// @Description	Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.
+// @Description	The `lang` parameter can be used to specify the language of the ADR descriptions.
+// @Description	Valid values are `english`, `german`, and `german-simple`.
+// @Description	The default language is `english`.
+// @Description `german-simple` returns the simplified German ADR description.
+// @Tags			Adverse Drug Reactions
+// @Produce		json
+// @Param			pzns	query	string	true	"Comma-separated list of PZNs"
+// @Param			lang	query	string	false	"Language for ADR names (default: english)"	Enums(english,german,german-simple)
+// @Success		200		{array}	PznADR	"List of PZNs with ADRs"
+// @Failure		400		"Bad request (e.g. invalid PZNs)"
+// @Failure		404		"PZN(s) not found"
+// @Failure		500		{object}	handle.ErrorResponse	"Internal server error"
+// @Router			/adr [get]
 func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 	var query = struct {
 		PZNs     string `form:"pzns"`
@@ -64,7 +79,7 @@ type ADR struct {
 	KeyFAM       uint64  `db:"Key_FAM" json:"-"`
 	FrequencyInt *int    `db:"Haeufigkeit" json:"frequency_code"`
 	Frequency    *string `json:"frequency"`
-	Descriptor   string  `db:"Name" json:"descriptor"`
+	Descriptor   string  `db:"Name" json:"description"`
 }
 
 func fetchPznAdrs(pzns []string, db *sqlx.DB, ac *ADRController, lang string) ([]PznADR, error) {

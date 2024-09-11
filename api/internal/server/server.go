@@ -40,13 +40,7 @@ func New(config *cfg.APIConfig, debug bool) (*Server, error) {
 	}
 
 	// setup handler
-	resourceHandle := handle.NewResourceHandle(
-		config.Meta,
-		config.AuthToken,
-		config.ResetToken,
-		config.Limits,
-		gorm,
-		sqlx)
+	resourceHandle := handle.NewResourceHandle(config, gorm, sqlx, debug)
 
 	// setup router
 	r := gin.New()
@@ -104,14 +98,16 @@ func (r *Server) Run() {
 }
 
 func registerRoutes(r *gin.Engine, resourceHandle *handle.ResourceHandle) {
-	api := r.Group("/api")
+	api := r.Group(resourceHandle.MetaCfg.Group)
 
+	RegistgerSwaggerRoutes(r, api, resourceHandle)
 	RegisterSysRoutes(api, resourceHandle)
 	RegisterUserRoutes(api, resourceHandle)
 	RegisterAdminRoutes(api, resourceHandle)
 	RegisterFormulationRoutes(api, resourceHandle)
 	RegisterInteractionRoutes(api, resourceHandle)
 	RegisterADRRoutes(api, resourceHandle)
+	RegisterPZNRoutes(api, resourceHandle)
 }
 
 func parseTrustedProxies(proxies string) []string {

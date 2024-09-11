@@ -28,6 +28,10 @@ func NotFoundError(c *gin.Context, msg string) {
 	Error(c, apierr.New(http.StatusNotFound, msg))
 }
 
+type ErrorResponse struct {
+	Error string `json:"error" example:"Internal server error"` // Error message
+} //	@name	ErrorResponse
+
 func Error(c *gin.Context, err error) {
 	var apiErr apierr.Error
 	if !errors.As(err, &apiErr) {
@@ -35,5 +39,5 @@ func Error(c *gin.Context, err error) {
 	}
 
 	apiErr.Log(c)
-	c.JSON(apiErr.Status(), gin.H{"error": apiErr.Error()})
+	c.JSON(apiErr.Status(), ErrorResponse{Error: apiErr.Message()})
 }

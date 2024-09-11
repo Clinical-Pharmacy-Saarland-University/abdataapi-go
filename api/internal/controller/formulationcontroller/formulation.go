@@ -18,11 +18,20 @@ func NewFormulationController(resourceHandle *handle.ResourceHandle) *Formulatio
 	}
 }
 
+// @Summary		List all drug formulation codes and their descriptions
+// @Description	Drug formulation codes and their descriptions that are used in the database.
+// @Description	These codes are used, e.g., in the compound interaction endpoint.
+// @Tags			Formulation
+// @Produce		json
+// @Success		200	{object}	formulationcontroller.FormResponse	"Response with formulations"
+// @Failure		500	{object}	handle.ErrorResponse				"Internal server error"
+// @Router			/formulations [get]
+// @Security		Bearer
 func (fc *FormulationController) GetFormulations(c *gin.Context) {
 	type Formulation struct {
-		Formulation string `db:"Key_DAR" json:"formulation"`
-		Description string `db:"Name" json:"description"`
-	}
+		Formulation string `db:"Key_DAR" json:"formulation" example:"TAB"` // Formulation code
+		Description string `db:"Name" json:"description" example:"Tablet"` // Formulation description
+	} //	@name	Formulation
 	db := fc.DB
 
 	var formulations []Formulation
@@ -32,5 +41,8 @@ func (fc *FormulationController) GetFormulations(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"formulations": formulations})
+	type Response struct {
+		Formulations []Formulation `json:"formulations"`
+	} //	@name	FormResponse
+	c.JSON(http.StatusOK, Response{Formulations: formulations})
 }

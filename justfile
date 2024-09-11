@@ -14,6 +14,8 @@ run:
 [group ('prod')]
 build:
     @ cd api && go mod tidy
+    @ cd api && swag init
+    @ cd api && swag fmt
     @ cd api && go build -ldflags="-s -w -X main.versionTag=$(git rev-parse --short HEAD)" -trimpath -o tmp/api.exe ./cmd/api
 
 # Deletes feature branch after merging

@@ -7,9 +7,9 @@ meta:
 server:
   read_write_timeout: "120s"
   idle_timeout: "30s"
-  address: "127.0.0.1:4444"
+  address: ":3333"
 log:
-  file_name: "./tmp/abdata_api.log"
+  file_name: "/logs/abdata_api.log"
   level: "INFO"
   max_size: 50
   max_backups: 3

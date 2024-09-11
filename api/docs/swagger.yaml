@@ -1,0 +1,196 @@
+definitions:
+  ErrorResponse:
+    properties:
+      error:
+        description: Error message
+        example: Internal server error
+        type: string
+    type: object
+  FormResponse:
+    properties:
+      formulations:
+        items:
+          $ref: '#/definitions/Formulation'
+        type: array
+    type: object
+  Formulation:
+    properties:
+      description:
+        description: Formulation description
+        example: Tablet
+        type: string
+      formulation:
+        description: Formulation code
+        example: TAB
+        type: string
+    type: object
+  InfoResp:
+    properties:
+      api_limits:
+        allOf:
+        - $ref: '#/definitions/cfg.LimitsConfig'
+        description: Limits
+      meta_info:
+        allOf:
+        - $ref: '#/definitions/cfg.MetaConfig'
+        description: Meta
+    type: object
+  PingResp:
+    properties:
+      message:
+        example: pong
+        type: string
+    type: object
+  adrcontroller.ADR:
+    properties:
+      description:
+        type: string
+      frequency:
+        type: string
+      frequency_code:
+        type: integer
+    type: object
+  adrcontroller.PznADR:
+    properties:
+      adrs:
+        items:
+          $ref: '#/definitions/adrcontroller.ADR'
+        type: array
+      pzn:
+        type: string
+    type: object
+  cfg.LimitsConfig:
+    description: Configuration limits for the API
+    properties:
+      max_batch_queries:
+        description: Max number of baches for POST requests
+        example: 50
+        type: integer
+      max_drugs:
+        description: Max number of drugs for interaction check
+        example: 100
+        type: integer
+    type: object
+  cfg.MetaConfig:
+    description: Meta Information for the API
+    properties:
+      api:
+        example: API Name
+        type: string
+      description:
+        example: API Description
+        type: string
+      url:
+        example: https://api.example.com
+        type: string
+      version:
+        example: 1.0.0
+        type: string
+      version_tag:
+        example: sometag
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /adr:
+    get:
+      description: |-
+        Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.
+        The `lang` parameter can be used to specify the language of the ADR descriptions.
+        Valid values are `english`, `german`, and `german-simple`.
+        The default language is `english`.
+        `german-simple` returns the simplified German ADR description.
+      parameters:
+      - description: Comma-separated list of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: 'Language for ADR names (default: english)'
+        enum:
+        - english
+        - german
+        - german-simple
+        in: query
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of PZNs with ADRs
+          schema:
+            items:
+              $ref: '#/definitions/adrcontroller.PznADR'
+            type: array
+        "400":
+          description: Bad request (e.g. invalid PZNs)
+        "404":
+          description: PZN(s) not found
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: List ADRs for PZNs
+      tags:
+      - Adverse Drug Reactions
+  /formulations:
+    get:
+      description: |-
+        Drug formulation codes and their descriptions that are used in the database.
+        These codes are used, e.g., in the compound interaction endpoint.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Response with formulations
+          schema:
+            $ref: '#/definitions/FormResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      security:
+      - Bearer: []
+      summary: List all drug formulation codes and their descriptions
+      tags:
+      - Formulation
+  /interactions/compounds:
+    get:
+      responses: {}
+  /sys/info:
+    get:
+      description: Get information about the API including version and query limits.
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: Response with API info
+          schema:
+            $ref: '#/definitions/InfoResp'
+      summary: Get API Info
+      tags:
+      - System
+  /sys/ping:
+    get:
+      description: Ping the API to check if it is alive.
+      produces:
+      - application/json
+      - application/json
+      responses:
+        "200":
+          description: Response with pong message
+          schema:
+            $ref: '#/definitions/PingResp'
+      summary: Ping the API
+      tags:
+      - System
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

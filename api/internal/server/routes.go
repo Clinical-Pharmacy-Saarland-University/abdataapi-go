@@ -1,17 +1,54 @@
 package server
 
 import (
+	docs "observeddb-go-api/docs"
 	"observeddb-go-api/internal/controller/admincontroller"
 	"observeddb-go-api/internal/controller/adrcontroller"
 	"observeddb-go-api/internal/controller/formulationcontroller"
 	"observeddb-go-api/internal/controller/interactioncontroller"
+	"observeddb-go-api/internal/controller/pzncontroller"
 	"observeddb-go-api/internal/controller/syscontroller"
 	"observeddb-go-api/internal/controller/usercontroller"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/middleware"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
+
+func RegistgerSwaggerRoutes(r *gin.Engine, api *gin.RouterGroup, handle *handle.ResourceHandle) {
+
+	hostURL := handle.MetaCfg.URL
+	if handle.DebugMode {
+		hostURL = handle.ServerCfg.Address
+	}
+
+	basePath := api.BasePath()
+	docs.SwaggerInfo.BasePath = basePath
+	docs.SwaggerInfo.Host = hostURL
+	docs.SwaggerInfo.Title = handle.MetaCfg.Name
+	docs.SwaggerInfo.Description = handle.MetaCfg.Description
+	docs.SwaggerInfo.Version = handle.MetaCfg.Version
+
+	swaggerURL := basePath + "/swagger/"
+	swaggerIndex := swaggerURL + "index.html"
+
+	r.GET("/", func(c *gin.Context) {
+		c.Redirect(302, swaggerIndex)
+	})
+
+	handlerFn := ginSwagger.WrapHandler(swaggerFiles.Handler,
+		ginSwagger.DefaultModelsExpandDepth(-1))
+
+	api.GET("/swagger/*any", func(c *gin.Context) {
+		if c.Request.RequestURI == swaggerURL {
+			c.Redirect(302, swaggerIndex)
+		} else {
+			handlerFn(c)
+		}
+	})
+}
 
 func RegisterSysRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := syscontroller.NewSysController(resourceHandle)
@@ -81,6 +118,15 @@ func RegisterInteractionRoutes(r *gin.RouterGroup, resourceHandle *handle.Resour
 		profiles.POST("/pzns", c.PostInterPZNs)
 		profiles.GET("/compounds", c.GetInterCompounds)
 		profiles.POST("/compounds", c.PostInterCompounds)
+	}
+}
+
+func RegisterPZNRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
+	c := pzncontroller.NewPZNController(resourceHandle)
+
+	profiles := r.Group("/pzn")
+	{
+		profiles.GET("/activecompounds/:pzn", c.GetActiveCompounds)
 	}
 }
 

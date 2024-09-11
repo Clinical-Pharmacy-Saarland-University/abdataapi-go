@@ -9,6 +9,11 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+//	@securityDefinitions.apikey	Bearer
+//	@in							header
+//	@name						Authorization
+//	@description				Type "Bearer" followed by a space and JWT token.
+
 var (
 	versionTag = "dev" //nolint:gochecknoglobals // version tag
 )

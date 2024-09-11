@@ -3,9 +3,9 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-cmd = "go build -o ./tmp/api.exe ./cmd/api"
+cmd = "swag fmt & swag init & swag fmt & go build -o ./tmp/api.exe ."
 delay = 1000
-exclude_dir = ["assets", "tmp", "vendor", "testdata"]
+exclude_dir = ["assets", "tmp", "vendor", "testdata", "docs"]
 exclude_file = []
 exclude_regex = ["_test.go"]
 exclude_unchanged = false

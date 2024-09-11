@@ -32,12 +32,14 @@ type ServerConfig struct {
 	TrustedProxies   string        `env:"TRUSTED_PROXIES, required"`
 }
 
+// @Description	Meta Information for the API
 type MetaConfig struct {
-	Name        string `yaml:"api_name" json:"api"`
-	Description string `yaml:"api_description" json:"description"`
-	Version     string `yaml:"api_version" json:"version"`
-	VersionTag  string `json:"version_tag"`
-	URL         string `yaml:"api_url" json:"url"`
+	Name        string `yaml:"api_name" json:"api" example:"API Name"`
+	Description string `yaml:"api_description" json:"description" example:"API Description"`
+	Version     string `yaml:"api_version" json:"version" example:"1.0.0"`
+	URL         string `yaml:"api_url" json:"url" example:"https://api.example.com"`
+	Group       string `yaml:"group" json:"-"`
+	VersionTag  string `json:"version_tag" example:"sometag"`
 }
 
 type LogConfig struct {
@@ -59,10 +61,19 @@ type ResetTokenConfig struct {
 	RetryInterval  time.Duration `yaml:"retry_interval"`
 }
 
+// @Description	Configuration limits for the API
 type LimitsConfig struct {
-	InteractionDrugs int `yaml:"interaction_drugs" json:"max_drugs"`
-	BatchQueries     int `yaml:"batch_queries" json:"max_batch_queries"`
-	BatchJobs        int `yaml:"batch_jobs"`
+	// Max number of drugs for interaction check
+	InteractionDrugs int `yaml:"interaction_drugs" json:"max_drugs" example:"100"`
+	// Max number of baches for POST requests
+	BatchQueries int `yaml:"batch_queries" json:"max_batch_queries" example:"50"`
+	BatchJobs    int `yaml:"batch_jobs" json:"-"`
+}
+
+type MailerConfig struct {
+	SendEmail    string `env:"SEND_EMAIL, required"`
+	APIKey       string `env:"SEND_EMAIL_API_KEY, required"`
+	DebugReciver string `yaml:"debug_reciver"`
 }
 
 func (b *Bytes) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -82,6 +93,7 @@ type APIConfig struct {
 	AuthToken  AuthTokenConfig  `yaml:"auth_token"`
 	ResetToken ResetTokenConfig `yaml:"reset_token"`
 	Limits     LimitsConfig     `yaml:"limits"`
+	Mailer     MailerConfig     `yaml:"mailer"`
 }
 
 // Read reads the configuration file and environment variables

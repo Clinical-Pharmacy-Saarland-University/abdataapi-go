@@ -27,6 +27,26 @@ func PZNs(pzns []string, mindrugs, maxdrugs int) error {
 	return nil
 }
 
+func PZN(pzn string) error {
+	if len(pzn) != 8 || !regexp.MustCompile(`^\d{8}$`).MatchString(pzn) {
+		return fmt.Errorf("PZN `%s` must be 8 digits", pzn)
+	}
+
+	// checksum calculation
+	sum := 0
+	for i := range [7]int{} {
+		sum += int(pzn[i]-'0') * (i + 1)
+	}
+
+	rem := sum % 11
+
+	if rem == 10 || rem != int(pzn[7]-'0') {
+		return fmt.Errorf("checksum test for `%s` failed", pzn)
+	}
+
+	return nil
+}
+
 func Compounds(compounds []string, maxdrugs int) error {
 	if len(compounds) < 2 {
 		return errors.New("at least two compounds must be provided")
@@ -45,30 +65,10 @@ func Compounds(compounds []string, maxdrugs int) error {
 
 func valPZNBatch(pzns []string) error {
 	for _, pzn := range pzns {
-		err := valSinglePZN(pzn)
+		err := PZN(pzn)
 		if err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func valSinglePZN(pzn string) error {
-	if len(pzn) != 8 || !regexp.MustCompile(`^\d{8}$`).MatchString(pzn) {
-		return fmt.Errorf("PZN `%s` must be 8 digits", pzn)
-	}
-
-	// checksum calculation
-	sum := 0
-	for i := range [7]int{} {
-		sum += int(pzn[i]-'0') * (i + 1)
-	}
-
-	rem := sum % 11
-
-	if rem == 10 || rem != int(pzn[7]-'0') {
-		return fmt.Errorf("checksum test for `%s` failed", pzn)
 	}
 
 	return nil
