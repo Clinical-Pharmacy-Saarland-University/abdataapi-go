@@ -7,6 +7,7 @@ import (
 	"observeddb-go-api/cfg"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/model"
+	"observeddb-go-api/internal/responder"
 	"observeddb-go-api/internal/utils/tokens"
 	"observeddb-go-api/internal/utils/validate"
 	"time"
@@ -18,12 +19,14 @@ import (
 type AdminController struct {
 	DB       *gorm.DB
 	ResetCfg cfg.ResetTokenConfig
+	Mailer   *responder.Mailer
 }
 
 func NewAdminController(resourceHandle *handle.ResourceHandle) *AdminController {
 	return &AdminController{
 		DB:       resourceHandle.Gorm,
 		ResetCfg: resourceHandle.ResetCfg,
+		Mailer:   resourceHandle.Mailer,
 	}
 }
 
@@ -90,7 +93,24 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 			return gorm.ErrInvalidTransaction
 		}
 
-		return tx.Create(&user).Error
+		if createErr := tx.Create(&user).Error; createErr != nil {
+			handle.ServerError(c, createErr)
+			return gorm.ErrInvalidTransaction
+		}
+
+		fullName := fmt.Sprintf("%s %s", query.FirstName, query.LastName)
+		mailerErr := ac.Mailer.SendNewAccoundEmail(
+			fullName,
+			query.Email,
+			resetTokens.Token,
+			user.PwdReset.TokenExpiry,
+		)
+		if mailerErr != nil {
+			handle.ServerError(c, mailerErr)
+			return gorm.ErrInvalidTransaction
+		}
+
+		return nil
 	}); err != nil {
 		return
 	}

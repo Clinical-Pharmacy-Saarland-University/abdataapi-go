@@ -29,5 +29,3 @@ limits:
   interaction_drugs: 50
   batch_queries: 100
   batch_jobs: 25
-mailer:
-  debug_reciver: ""

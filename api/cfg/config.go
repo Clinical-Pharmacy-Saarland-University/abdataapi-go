@@ -71,9 +71,8 @@ type LimitsConfig struct {
 }
 
 type MailerConfig struct {
-	SendEmail    string `env:"SEND_EMAIL, required"`
-	APIKey       string `env:"SEND_EMAIL_API_KEY, required"`
-	DebugReciver string `yaml:"debug_reciver"`
+	SendEmail string `env:"SEND_EMAIL, required"`
+	APIKey    string `env:"SEND_EMAIL_API_KEY, required"`
 }
 
 func (b *Bytes) UnmarshalYAML(unmarshal func(interface{}) error) error {
@@ -93,7 +92,7 @@ type APIConfig struct {
 	AuthToken  AuthTokenConfig  `yaml:"auth_token"`
 	ResetToken ResetTokenConfig `yaml:"reset_token"`
 	Limits     LimitsConfig     `yaml:"limits"`
-	Mailer     MailerConfig     `yaml:"mailer"`
+	Mailer     MailerConfig
 }
 
 // Read reads the configuration file and environment variables
@@ -147,7 +146,6 @@ type CmdLineArgs struct {
 }
 
 func ParseCmdLineArgs() CmdLineArgs {
-
 	var args CmdLineArgs
 	flag.BoolVar(&args.DebugMode, "debug", false, "Enable debug mode")
 	flag.StringVar(&args.ConfigFile, "config", "config.yml", "Config file path")
