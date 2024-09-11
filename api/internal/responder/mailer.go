@@ -25,7 +25,8 @@ func NewMailer(mailerSettings cfg.MailerConfig, metaInfo cfg.MetaConfig, debug b
 
 func (m *Mailer) SendNewAccoundEmail(receiverName, receiver, token string, expirationTime time.Time) error {
 	apiDomain := m.metaInfo.URL + m.metaInfo.Group
-	body := newAccountMsg(receiverName,
+	body := newAccountMsg(
+		receiverName,
 		receiver,
 		m.metaInfo.Name,
 		apiDomain,
@@ -40,6 +41,73 @@ func (m *Mailer) SendNewAccoundEmail(receiverName, receiver, token string, expir
 	}
 
 	return nil
+}
+
+func (m *Mailer) SendPasswordResetEmail(receiverName, receiver, token string, expirationTime time.Time) error {
+	apiDomain := m.metaInfo.URL + m.metaInfo.Group
+	body := passwordResetMsg(
+		receiver,
+		m.metaInfo.Name,
+		apiDomain,
+		token,
+		expirationTime,
+	)
+
+	subject := fmt.Sprintf("Password reset requested for %s", m.metaInfo.Name)
+	err := m.send(subject, body, receiverName, receiver)
+	if err != nil {
+		return fmt.Errorf("cannot send email for password reset: %w", err)
+	}
+
+	return nil
+}
+
+func (m *Mailer) SendChangeEmail(receiverName, receiver, token string, expirationTime time.Time) error {
+	apiDomain := m.metaInfo.URL + m.metaInfo.Group
+	body := changeEmailMsg(
+		m.metaInfo.Name,
+		apiDomain,
+		token,
+		expirationTime,
+	)
+
+	subject := fmt.Sprintf("Email change requested for %s", m.metaInfo.Name)
+	err := m.send(subject, body, receiverName, receiver)
+	if err != nil {
+		return fmt.Errorf("cannot send email for email change: %w", err)
+	}
+
+	return nil
+}
+
+func changeEmailMsg(apiName, apiDomain, token string, expirationTime time.Time) string {
+	return fmt.Sprintf(
+		`Dear user,
+
+A change of email login for %s was requested.
+If you did not request this, please ignore this email and your email will remain unchanged.
+
+To confirm the change, use this endpoint:
+
+%s/user/email/confirm
+
+with token: %s
+
+As an example, you can use the following curl command:
+
+curl -X POST %s/user/email/confirm \
+-H "Authorization: Bearer <your_jwt_token>" \
+-H "Content-Type: application/json" \
+-d '{
+	"token": "%s",
+}'
+
+You have to be authenticated with your previously registered email.
+
+Swagger documentation for the API can be found at %s/swagger
+
+This token will expire at %s. If you need a new token, please contact the administrator.`,
+		apiName, apiDomain, token, apiDomain, token, apiDomain, expirationTime.Format(time.RFC1123))
 }
 
 func newAccountMsg(fullName, email, apiName, apiDomain, token string, expirationTime time.Time) string {
@@ -67,6 +135,34 @@ Swagger documentation for the API can be found at %s/swagger
 
 This token will expire at %s. If you need a new token, please contact the administrator.`,
 		fullName, apiName, apiDomain, token, apiDomain, token, email, apiDomain, expirationTime.Format(time.RFC1123))
+}
+
+func passwordResetMsg(email, apiName, apiDomain, token string, expirationTime time.Time) string {
+	return fmt.Sprintf(
+		`Dear user,
+
+An password reset for %s was requested.
+If you did not request this, please ignore this email and your password will remain unchanged.
+To reset your password, use this endpoint:
+
+%s/user/password/reset/confirm
+
+with token: %s
+
+As an example, you can use the following curl command:
+
+curl -X POST %s/user/password/reset/confirm \
+-H "Content-Type: application/json" \
+-d '{
+	"token": "%s",
+	"email": "%s",
+	"password": "your_new_secure_password"
+}'
+
+Swagger documentation for the API can be found at %s/swagger
+
+This token will expire at %s.`,
+		apiName, apiDomain, token, apiDomain, token, email, apiDomain, expirationTime.Format(time.RFC1123))
 }
 
 func (m *Mailer) send(subject, body, receiverName, receiver string) error {
