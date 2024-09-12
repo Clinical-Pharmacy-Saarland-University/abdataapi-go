@@ -151,11 +151,33 @@ definitions:
         example: fail
         type: string
     type: object
+  JSendSuccess-InfoResp:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/InfoResp'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
   JSendSuccess-LoginResponse:
     properties:
       data:
         allOf:
         - $ref: '#/definitions/LoginResponse'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
+  JSendSuccess-PingResp:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/PingResp'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -260,6 +282,7 @@ definitions:
   PingResp:
     properties:
       message:
+        description: Message
         example: pong
         type: string
     type: object
@@ -738,20 +761,16 @@ paths:
       summary: List all drug formulation codes and their descriptions
       tags:
       - Formulation
-  /interactions/compounds:
-    get:
-      responses: {}
   /sys/info:
     get:
       description: Get information about the API including version and query limits.
       produces:
       - application/json
-      - application/json
       responses:
         "200":
           description: Response with API info
           schema:
-            $ref: '#/definitions/InfoResp'
+            $ref: '#/definitions/JSendSuccess-InfoResp'
       summary: Get API Info
       tags:
       - System
@@ -760,12 +779,11 @@ paths:
       description: Ping the API to check if it is alive.
       produces:
       - application/json
-      - application/json
       responses:
         "200":
           description: Response with pong message
           schema:
-            $ref: '#/definitions/PingResp'
+            $ref: '#/definitions/JSendSuccess-PingResp'
       summary: Ping the API
       tags:
       - System

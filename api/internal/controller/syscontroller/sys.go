@@ -1,7 +1,6 @@
 package syscontroller
 
 import (
-	"net/http"
 	"observeddb-go-api/cfg"
 	"observeddb-go-api/internal/handle"
 
@@ -24,23 +23,21 @@ func NewSysController(resourceHandle *handle.ResourceHandle) *SysController {
 // @Description	Ping the API to check if it is alive.
 // @Tags			System
 // @Produce		json
-// @Produce		json
-// @Success		200	{object}	syscontroller.PingResp	"Response with pong message"
+// @Success		200	{object}	handle.jsendSuccess[syscontroller.PingResp]	"Response with pong message"
 // @Router			/sys/ping [get]
 func (sc *SysController) GetPing(c *gin.Context) {
 	type PingResponse struct {
-		Message string `json:"message" example:"pong"`
+		Message string `json:"message" example:"pong"` // Message
 	} // @name PingResp
 
-	c.JSON(http.StatusOK, PingResponse{Message: "pong"})
+	handle.Success(c, PingResponse{Message: "pong"})
 }
 
 // @Summary		Get API Info
 // @Description	Get information about the API including version and query limits.
 // @Tags			System
 // @Produce		json
-// @Produce		json
-// @Success		200	{object}	syscontroller.InfoResp	"Response with API info"
+// @Success		200	{object}	handle.jsendSuccess[syscontroller.InfoResp]	"Response with API info"
 // @router			/sys/info [get]
 func (sc *SysController) GetInfo(c *gin.Context) {
 	type InfoResponse struct {
@@ -53,5 +50,5 @@ func (sc *SysController) GetInfo(c *gin.Context) {
 		Limits: sc.Limit,
 	}
 
-	c.JSON(http.StatusOK, res)
+	handle.Success(c, res)
 }

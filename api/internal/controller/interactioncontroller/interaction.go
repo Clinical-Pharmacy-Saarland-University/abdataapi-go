@@ -204,8 +204,6 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 
 // compounds: comma separated list of compounds
 // doses: boolean flag to fetch doses
-
-// @Router /interactions/compounds [get]
 func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 	var query struct {
 		Compounds    string `form:"compounds" binding:"required"`

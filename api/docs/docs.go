@@ -428,16 +428,10 @@ const docTemplate = `{
                 }
             }
         },
-        "/interactions/compounds": {
-            "get": {
-                "responses": {}
-            }
-        },
         "/sys/info": {
             "get": {
                 "description": "Get information about the API including version and query limits.",
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
@@ -448,7 +442,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Response with API info",
                         "schema": {
-                            "$ref": "#/definitions/InfoResp"
+                            "$ref": "#/definitions/JSendSuccess-InfoResp"
                         }
                     }
                 }
@@ -458,7 +452,6 @@ const docTemplate = `{
             "get": {
                 "description": "Ping the API to check if it is alive.",
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
@@ -469,7 +462,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Response with pong message",
                         "schema": {
-                            "$ref": "#/definitions/PingResp"
+                            "$ref": "#/definitions/JSendSuccess-PingResp"
                         }
                     }
                 }
@@ -1288,6 +1281,24 @@ const docTemplate = `{
                 }
             }
         },
+        "JSendSuccess-InfoResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InfoResp"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
         "JSendSuccess-LoginResponse": {
             "type": "object",
             "properties": {
@@ -1296,6 +1307,24 @@ const docTemplate = `{
                     "allOf": [
                         {
                             "$ref": "#/definitions/LoginResponse"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-PingResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PingResp"
                         }
                     ]
                 },
@@ -1447,6 +1476,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "message": {
+                    "description": "Message",
                     "type": "string",
                     "example": "pong"
                 }
