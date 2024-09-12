@@ -83,7 +83,7 @@ Enviroment variables will be considered in the following order:
 
 The configuration file is a YAML file with the following structure: [config.yml](https://github.com/Clinical-Pharmacy-Saarland-University/abdataapi-go/blob/main/api/cfg/default_config.yml)
 
-### Local Development
+## Local Development
 
 1. You need Go Version 1.23 or higher.
 2. You need to install [air](https://github.com/air-verse/air) and [swag](https://github.com/swaggo/swag) for development.

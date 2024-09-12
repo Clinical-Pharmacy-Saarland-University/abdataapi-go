@@ -1,7 +1,4 @@
 set windows-shell := ["pwsh.exe", "-NoLogo", "-c"]
-
-GH_USER := env("GH_USER", "NOUSER")
-GH_TOKEN := env("GH_TOKEN", "NOPASS")
 port := "3333"
 
 _default:
@@ -22,10 +19,9 @@ deploy-build:
 
 # Pulls the deployed image from the container registry
 [group('deploy')]
-deploy-pull user=GH_USER pass=GH_TOKEN:
+deploy-pull:
     @ echo {{user}} {{pass}}
-    @ echo {{pass}} | docker login --username {{user}} --password-stdin ghcr.io
-    @ docker pull ghcr.io/eracosysmed-inspiration/dss:latest
+    @ docker pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
     @ docker logout ghcr.io     
 
 # Runs the deployed image
