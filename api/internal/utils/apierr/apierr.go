@@ -74,9 +74,9 @@ func ToResponse(c *gin.Context, err error) ResStatus {
 }
 
 type ValidationError struct {
-	Field  string `json:"field"`
-	Reason string `json:"reason"`
-}
+	Field  string `json:"field" example:"query_field"` // Field Query or JSON field
+	Reason string `json:"reason" example:"reason"`     // Validation error reason
+} //	@name	ValidationError
 
 func ValidationErrors(verr validator.ValidationErrors, obj interface{}) []ValidationError {
 	var errors []ValidationError

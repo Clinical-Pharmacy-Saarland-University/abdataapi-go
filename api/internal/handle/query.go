@@ -2,7 +2,6 @@ package handle
 
 import (
 	"errors"
-	"net/http"
 	"observeddb-go-api/internal/utils/apierr"
 
 	"github.com/gin-gonic/gin"
@@ -31,7 +30,7 @@ func handleBindErrors(c *gin.Context, err error, query interface{}) {
 	var verr validator.ValidationErrors
 	if errors.As(err, &verr) {
 		ferrs := apierr.ValidationErrors(verr, query)
-		c.JSON(http.StatusBadRequest, gin.H{"errors": ferrs})
+		ValidationError(c, ferrs)
 		return
 	}
 	BadRequestError(c, err.Error())

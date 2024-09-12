@@ -2,6 +2,7 @@ package handle
 
 import (
 	"observeddb-go-api/cfg"
+	"observeddb-go-api/internal/responder"
 	"observeddb-go-api/internal/utils/helper"
 
 	"github.com/jmoiron/sqlx"
@@ -15,6 +16,7 @@ type ResourceHandle struct {
 	AuthCfg   cfg.AuthTokenConfig
 	ResetCfg  cfg.ResetTokenConfig
 	Limits    cfg.LimitsConfig
+	Mailer    *responder.Mailer
 	Gorm      *gorm.DB
 	SQLX      *sqlx.DB
 	DebugMode bool
@@ -24,6 +26,7 @@ func NewResourceHandle(
 	cfg *cfg.APIConfig,
 	gorm *gorm.DB,
 	sqlx *sqlx.DB,
+	mailer *responder.Mailer,
 	debug bool,
 ) *ResourceHandle {
 	res := &ResourceHandle{
@@ -32,6 +35,7 @@ func NewResourceHandle(
 		AuthCfg:   cfg.AuthToken,
 		ResetCfg:  cfg.ResetToken,
 		Limits:    cfg.Limits,
+		Mailer:    mailer,
 		Gorm:      gorm,
 		SQLX:      sqlx,
 		DebugMode: debug,

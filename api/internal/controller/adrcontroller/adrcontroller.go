@@ -46,7 +46,6 @@ func NewADRController(resourceHandle *handle.ResourceHandle) *ADRController {
 // @Success		200		{array}	PznADR	"List of PZNs with ADRs"
 // @Failure		400		"Bad request (e.g. invalid PZNs)"
 // @Failure		404		"PZN(s) not found"
-// @Failure		500		{object}	handle.ErrorResponse	"Internal server error"
 // @Router			/adr [get]
 func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 	var query = struct {

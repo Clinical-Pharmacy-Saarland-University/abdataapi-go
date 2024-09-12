@@ -8,6 +8,7 @@ import (
 	"observeddb-go-api/internal/database"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/middleware"
+	"observeddb-go-api/internal/responder"
 	"os"
 	"os/signal"
 	"strings"
@@ -39,8 +40,11 @@ func New(config *cfg.APIConfig, debug bool) (*Server, error) {
 		return nil, fmt.Errorf("cannot migrate database: %w", err)
 	}
 
+	// create Mailer
+	mailer := responder.NewMailer(config.Mailer, config.Meta, debug)
+
 	// setup handler
-	resourceHandle := handle.NewResourceHandle(config, gorm, sqlx, debug)
+	resourceHandle := handle.NewResourceHandle(config, gorm, sqlx, mailer, debug)
 
 	// setup router
 	r := gin.New()

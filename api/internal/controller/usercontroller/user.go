@@ -6,6 +6,7 @@ import (
 	"observeddb-go-api/cfg"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/model"
+	"observeddb-go-api/internal/responder"
 	"observeddb-go-api/internal/utils/hash"
 	"observeddb-go-api/internal/utils/helper"
 	"observeddb-go-api/internal/utils/tokens"
@@ -20,6 +21,7 @@ type UserController struct {
 	DB       *gorm.DB
 	AuthCfg  cfg.AuthTokenConfig
 	ResetCfg cfg.ResetTokenConfig
+	Mailer   *responder.Mailer
 }
 
 func NewUserController(resourceHandle *handle.ResourceHandle) *UserController {
@@ -27,6 +29,7 @@ func NewUserController(resourceHandle *handle.ResourceHandle) *UserController {
 		DB:       resourceHandle.Gorm,
 		AuthCfg:  resourceHandle.AuthCfg,
 		ResetCfg: resourceHandle.ResetCfg,
+		Mailer:   resourceHandle.Mailer,
 	}
 }
 
@@ -68,17 +71,17 @@ func (uc *UserController) Login(c *gin.Context) {
 
 	user, err := model.GetUserByEmail(uc.DB, query.Login)
 	if err != nil {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid ceredentials")
 		return
 	}
 
 	if user.PwdHash == nil {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid ceredentials")
 		return
 	}
 
 	if validPwd, _ := hash.Check(*user.PwdHash, query.Password); !validPwd {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid credentials")
 		return
 	}
 
@@ -120,7 +123,7 @@ func (uc *UserController) RefreshToken(c *gin.Context) {
 
 	claims, err := tokens.CheckRefreshToken(query.Token, &uc.AuthCfg)
 	if err != nil {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid refresh token")
 		return
 	}
 
@@ -237,9 +240,25 @@ func (uc *UserController) ResetPwd(c *gin.Context) {
 	user.PwdReset.ResetTokenHash = resetTokens.TokenHash
 	user.PwdReset.TokenExpiry = time.Now().Add(uc.ResetCfg.ExpirationTime)
 
-	err = uc.DB.Save(user.PwdReset).Error
-	if err != nil {
-		handle.ServerError(c, err)
+	if err = uc.DB.Transaction(func(tx *gorm.DB) error {
+		if createErr := tx.Save(user.PwdReset).Error; createErr != nil {
+			handle.ServerError(c, createErr)
+			return gorm.ErrInvalidTransaction
+		}
+
+		mailerErr := uc.Mailer.SendPasswordResetEmail(
+			"User",
+			query.Email,
+			resetTokens.Token,
+			user.PwdReset.TokenExpiry,
+		)
+		if mailerErr != nil {
+			handle.ServerError(c, mailerErr)
+			return gorm.ErrInvalidTransaction
+		}
+
+		return nil
+	}); err != nil {
 		return
 	}
 
@@ -371,6 +390,17 @@ func (uc *UserController) ChangeEmail(c *gin.Context) {
 
 		if err = tx.Save(user.EmailChange).Error; err != nil {
 			handle.ServerError(c, err)
+			return gorm.ErrInvalidTransaction
+		}
+
+		mailerErr := uc.Mailer.SendChangeEmail(
+			"User",
+			query.Email,
+			changeTokens.Token,
+			user.EmailChange.TokenExpiry,
+		)
+		if mailerErr != nil {
+			handle.ServerError(c, mailerErr)
 			return gorm.ErrInvalidTransaction
 		}
 

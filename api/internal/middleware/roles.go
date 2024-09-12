@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"net/http"
+	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/utils/validate"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +20,8 @@ func roleMiddleware(requiredRole string) gin.HandlerFunc {
 		userRole := c.GetString("user_role")
 
 		if err := validate.Access(requiredRole, userRole); err != nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Unauthorized access"})
+			handle.ForbiddenError(c, "Unauthorized access")
+			c.Abort()
 			return
 		}
 

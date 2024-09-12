@@ -1,9 +1,60 @@
 definitions:
+  ChangeUserProfileQuery:
+    properties:
+      role:
+        enum:
+        - admin
+        - user
+        - approver
+        example: user
+        type: string
+      status:
+        enum:
+        - active
+        - inactive
+        example: inactive
+        type: string
+    type: object
+  CreateUserQuery:
+    properties:
+      email:
+        example: joe@gmail.com
+        maxLength: 255
+        minLength: 2
+        type: string
+      first_name:
+        example: Joe
+        maxLength: 255
+        minLength: 2
+        type: string
+      last_name:
+        example: Doe
+        maxLength: 255
+        minLength: 2
+        type: string
+      organization:
+        example: ACME
+        maxLength: 255
+        minLength: 2
+        type: string
+      role:
+        enum:
+        - admin
+        - user
+        - approver
+        type: string
+    required:
+    - email
+    - first_name
+    - last_name
+    - organization
+    - role
+    type: object
   ErrorResponse:
     properties:
       error:
         description: Error message
-        example: Internal server error
+        example: Some error message
         type: string
     type: object
   FormResponse:
@@ -35,11 +86,97 @@ definitions:
         - $ref: '#/definitions/cfg.MetaConfig'
         description: Meta
     type: object
+  JSendError:
+    properties:
+      message:
+        description: Error message
+        example: Internal server error
+        type: string
+      status:
+        description: Status
+        example: error
+        type: string
+    type: object
+  JSendFailure-ErrorResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/ErrorResponse'
+        description: Data with error message(s)
+      status:
+        description: Status 'fail'
+        example: fail
+        type: string
+    type: object
+  JSendFailure-ValidationResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/ValidationResponse'
+        description: Data with error message(s)
+      status:
+        description: Status 'fail'
+        example: fail
+        type: string
+    type: object
+  JSendSuccess-array_model_User:
+    properties:
+      data:
+        description: Data with success message(s)
+        items:
+          $ref: '#/definitions/model.User'
+        type: array
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
+  JSendSuccess-map_string_string:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/map_string_string'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
+  JSendSuccess-model_User:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/model.User'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
   PingResp:
     properties:
       message:
         example: pong
         type: string
+    type: object
+  ValidationError:
+    properties:
+      field:
+        description: Field Query or JSON field
+        example: query_field
+        type: string
+      reason:
+        description: Validation error reason
+        example: reason
+        type: string
+    type: object
+  ValidationResponse:
+    properties:
+      errors:
+        description: Validation errors
+        items:
+          $ref: '#/definitions/ValidationError'
+        type: array
     type: object
   adrcontroller.ADR:
     properties:
@@ -90,9 +227,274 @@ definitions:
         example: sometag
         type: string
     type: object
+  map_string_string:
+    additionalProperties:
+      type: string
+    type: object
+  model.User:
+    properties:
+      email:
+        example: joe@me.com
+        type: string
+      first_name:
+        example: Joe
+        type: string
+      last_login:
+        example: "2021-01-01T00:00:00Z"
+        type: string
+      last_name:
+        example: Doe
+        type: string
+      organization:
+        example: ACME
+        type: string
+      role:
+        example: admin
+        type: string
+      status:
+        example: active
+        type: string
+    type: object
 info:
   contact: {}
 paths:
+  /admin/users:
+    get:
+      description: |-
+        __Admin role required__
+        Get a list of users and their information based on optional query filters.
+        Soft-deleted users are not included in the response.
+      parameters:
+      - description: Filter by role
+        enum:
+        - admin
+        - user
+        - approver
+        in: query
+        name: role
+        type: string
+      - description: Filter by status
+        enum:
+        - active
+        - inactive
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin table
+          schema:
+            $ref: '#/definitions/JSendSuccess-array_model_User'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: No users found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Get user profile table
+      tags:
+      - Admin
+    post:
+      description: |-
+        __Admin role required__
+        Create a new user for the API. Ths user will receive an email with a token to set their password.
+        You can create users with the following roles: `admin`, `user`, `approver`.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/CreateUserQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User created
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Create a new user
+      tags:
+      - Admin
+  /admin/users/{email}:
+    delete:
+      description: |-
+        __Admin role required__
+        Delete a user based on the email address.
+        Only soft-deletes the user, does not remove the user from the database.
+        Admins cannot delete their own account.
+      parameters:
+      - description: User email to delete
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User soft-deleted
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user or cannot delete own account
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Delete a user
+      tags:
+      - Admin
+    get:
+      description: |-
+        __Admin role required__
+        Get the profile of a user based on the email address.
+        Soft-deleted users can not be retrieved.
+      parameters:
+      - description: User email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            $ref: '#/definitions/JSendSuccess-model_User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: No users found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Get profile of a user
+      tags:
+      - Admin
+    patch:
+      description: |-
+        __Admin role required__
+        Change the role or status of a user based on the email address.
+        Admins cannot change their own role or status.
+        Possible roles: `admin`, `user`, `approver`.
+        Possible statuses: `active`, `inactive`.
+      parameters:
+      - description: User email to update
+        in: path
+        name: email
+        required: true
+        type: string
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ChangeUserProfileQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile updated
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: No changes requested
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user or cannot update own account
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Change user role or status
+      tags:
+      - Admin
   /adr:
     get:
       description: |-
@@ -128,10 +530,6 @@ paths:
           description: Bad request (e.g. invalid PZNs)
         "404":
           description: PZN(s) not found
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/ErrorResponse'
       summary: List ADRs for PZNs
       tags:
       - Adverse Drug Reactions
@@ -147,10 +545,6 @@ paths:
           description: Response with formulations
           schema:
             $ref: '#/definitions/FormResponse'
-        "500":
-          description: Internal server error
-          schema:
-            $ref: '#/definitions/ErrorResponse'
       security:
       - Bearer: []
       summary: List all drug formulation codes and their descriptions
