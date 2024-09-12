@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"errors"
-	"net/http"
 	"observeddb-go-api/cfg"
+	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/utils/tokens"
 	"strings"
 
@@ -14,19 +14,22 @@ func Authentication(authCfg *cfg.AuthTokenConfig) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+			handle.UnauthorizedError(c, "Authorization header is required")
+			c.Abort()
 			return
 		}
 
 		token, err := extractToken(authHeader)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid Bearer format"})
+			handle.UnauthorizedError(c, "Invalid Bearer format")
+			c.Abort()
 			return
 		}
 
 		claims, err := tokens.CheckAccessToken(token, authCfg)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid access token"})
+			handle.UnauthorizedError(c, "Invalid access token")
+			c.Abort()
 			return
 		}
 

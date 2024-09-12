@@ -24,7 +24,6 @@ func NewFormulationController(resourceHandle *handle.ResourceHandle) *Formulatio
 // @Tags			Formulation
 // @Produce		json
 // @Success		200	{object}	formulationcontroller.FormResponse	"Response with formulations"
-// @Failure		500	{object}	handle.ErrorResponse				"Internal server error"
 // @Router			/formulations [get]
 // @Security		Bearer
 func (fc *FormulationController) GetFormulations(c *gin.Context) {

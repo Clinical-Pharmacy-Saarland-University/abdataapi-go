@@ -71,17 +71,17 @@ func (uc *UserController) Login(c *gin.Context) {
 
 	user, err := model.GetUserByEmail(uc.DB, query.Login)
 	if err != nil {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid ceredentials")
 		return
 	}
 
 	if user.PwdHash == nil {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid ceredentials")
 		return
 	}
 
 	if validPwd, _ := hash.Check(*user.PwdHash, query.Password); !validPwd {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid credentials")
 		return
 	}
 
@@ -123,7 +123,7 @@ func (uc *UserController) RefreshToken(c *gin.Context) {
 
 	claims, err := tokens.CheckRefreshToken(query.Token, &uc.AuthCfg)
 	if err != nil {
-		handle.UnauthorizedError(c)
+		handle.UnauthorizedError(c, "Invalid refresh token")
 		return
 	}
 

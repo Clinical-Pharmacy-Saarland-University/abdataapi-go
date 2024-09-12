@@ -9,13 +9,13 @@ import (
 
 type User struct {
 	gorm.Model `json:"-"`
-	Email      string     `gorm:"index:idx_email_deleted_at,unique;size:255;not null" json:"email"`
-	LastName   string     `gorm:"not null;size:255" json:"last_name"`
-	FirstName  string     `gorm:"not null;size:255" json:"first_name"`
-	Org        string     `gorm:"not null;size:255" json:"organization"`
-	Role       string     `gorm:"type:enum('admin','user','approver');not null" json:"role"`
-	Status     string     `gorm:"type:enum('active','inactive');default:'active';not null" json:"status"`
-	LastLogin  *time.Time `gorm:"type:timestamp;" json:"last_login"`
+	Email      string     `gorm:"index:idx_email_deleted_at,unique;size:255;not null" json:"email" example:"joe@me.com"`
+	LastName   string     `gorm:"not null;size:255" json:"last_name" example:"Doe"`
+	FirstName  string     `gorm:"not null;size:255" json:"first_name" example:"Joe"`
+	Org        string     `gorm:"not null;size:255" json:"organization" example:"ACME"`
+	Role       string     `gorm:"type:enum('admin','user','approver');not null" json:"role" example:"admin"`
+	Status     string     `gorm:"type:enum('active','inactive');default:'active';not null" json:"status" example:"active"`
+	LastLogin  *time.Time `gorm:"type:timestamp;" json:"last_login" example:"2021-01-01T00:00:00Z"`
 	PwdHash    *string    `gorm:"default:null;size:255" json:"-"`
 	// Soft delete
 	DeletedAt   gorm.DeletedAt   `gorm:"index:idx_email_deleted_at,unique" json:"-"`
