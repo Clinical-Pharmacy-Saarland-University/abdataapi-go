@@ -92,6 +92,7 @@ definitions:
   FormResponse:
     properties:
       formulations:
+        description: Formulations
         items:
           $ref: '#/definitions/Formulation'
         type: array
@@ -149,6 +150,17 @@ definitions:
       status:
         description: Status 'fail'
         example: fail
+        type: string
+    type: object
+  JSendSuccess-FormResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/FormResponse'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
         type: string
     type: object
   JSendSuccess-InfoResp:
@@ -755,7 +767,15 @@ paths:
         "200":
           description: Response with formulations
           schema:
-            $ref: '#/definitions/FormResponse'
+            $ref: '#/definitions/JSendSuccess-FormResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
       security:
       - Bearer: []
       summary: List all drug formulation codes and their descriptions

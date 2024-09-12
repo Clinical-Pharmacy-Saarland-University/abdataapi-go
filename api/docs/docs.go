@@ -422,7 +422,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Response with formulations",
                         "schema": {
-                            "$ref": "#/definitions/FormResponse"
+                            "$ref": "#/definitions/JSendSuccess-FormResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
                         }
                     }
                 }
@@ -1187,6 +1199,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "formulations": {
+                    "description": "Formulations",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/Formulation"
@@ -1278,6 +1291,24 @@ const docTemplate = `{
                     "description": "Status 'fail'",
                     "type": "string",
                     "example": "fail"
+                }
+            }
+        },
+        "JSendSuccess-FormResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/FormResponse"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
                 }
             }
         },
