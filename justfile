@@ -20,7 +20,6 @@ deploy-build:
 # Pulls the deployed image from the container registry
 [group('deploy')]
 deploy-pull:
-    @ echo {{user}} {{pass}}
     @ docker pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
     @ docker logout ghcr.io     
 

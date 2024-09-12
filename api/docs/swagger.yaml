@@ -1,4 +1,27 @@
 definitions:
+  ChangeEmailQuery:
+    properties:
+      email:
+        description: New email address
+        example: newmail@newcomp.com
+        type: string
+    required:
+    - email
+    type: object
+  ChangePwdQuery:
+    properties:
+      new_password:
+        description: New password
+        example: new_password
+        type: string
+      old_password:
+        description: Old password
+        example: old_password
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
   ChangeUserProfileQuery:
     properties:
       role:
@@ -14,6 +37,15 @@ definitions:
         - inactive
         example: inactive
         type: string
+    type: object
+  ConfirmEmailChangeQuery:
+    properties:
+      token:
+        description: Change token
+        example: my_change_token
+        type: string
+    required:
+    - token
     type: object
   CreateUserQuery:
     properties:
@@ -119,6 +151,28 @@ definitions:
         example: fail
         type: string
     type: object
+  JSendSuccess-LoginResponse:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/LoginResponse'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
+  JSendSuccess-UserProfile:
+    properties:
+      data:
+        allOf:
+        - $ref: '#/definitions/UserProfile'
+        description: Data with success message(s)
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
   JSendSuccess-array_model_User:
     properties:
       data:
@@ -153,10 +207,144 @@ definitions:
         example: success
         type: string
     type: object
+  LoginQuery:
+    properties:
+      login:
+        example: joe@me.com
+        type: string
+      password:
+        example: password
+        type: string
+      role:
+        enum:
+        - admin
+        - user
+        - approver
+        example: user
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  LoginResponse:
+    properties:
+      access_expires_in:
+        description: Access token expiration time
+        example: "2021-07-01T12:00:00Z"
+        type: string
+      access_token:
+        description: Access token
+        example: your_access_token
+        type: string
+      last_login:
+        description: Last login time
+        example: "2021-07-01T12:00:00Z"
+        type: string
+      refresh_expires_in:
+        description: Refresh token expiration time
+        example: "2021-07-01T12:00:00Z"
+        type: string
+      refresh_token:
+        description: Refresh token
+        example: your_refresh_token
+        type: string
+      role:
+        description: User role
+        example: user
+        type: string
+      token_type:
+        description: Token type
+        example: Bearer
+        type: string
+    type: object
   PingResp:
     properties:
       message:
         example: pong
+        type: string
+    type: object
+  RefreshQuery:
+    properties:
+      refresh_token:
+        example: my_refresh_token
+        type: string
+    required:
+    - refresh_token
+    type: object
+  ResetConfirmPwdQuery:
+    properties:
+      email:
+        description: Email address
+        example: joe@me.com
+        type: string
+      password:
+        description: New password
+        example: my_new_pwd
+        type: string
+      token:
+        description: Reset token
+        example: my_reset_token
+        type: string
+    required:
+    - email
+    - password
+    - token
+    type: object
+  ResetPwdQuery:
+    properties:
+      email:
+        description: Email address
+        example: joe@me.com
+        type: string
+    required:
+    - email
+    type: object
+  UpdateProfileQuery:
+    properties:
+      first_name:
+        description: First name
+        example: Joe
+        maxLength: 255
+        minLength: 2
+        type: string
+      last_name:
+        description: Last name
+        example: Doe
+        maxLength: 255
+        minLength: 2
+        type: string
+      organization:
+        description: Organization
+        example: ACME
+        maxLength: 255
+        minLength: 2
+        type: string
+    type: object
+  UserProfile:
+    properties:
+      email:
+        description: Email address
+        example: joe@me.com
+        type: string
+      first_name:
+        description: First name
+        example: Joe
+        type: string
+      last_login:
+        description: Last login time
+        example: "2021-07-01T12:00:00Z"
+        type: string
+      last_name:
+        description: Last name
+        example: Doe
+        type: string
+      organization:
+        description: Organization
+        example: ACME
+        type: string
+      role:
+        description: User role
+        example: user
         type: string
     type: object
   ValidationError:
@@ -581,6 +769,407 @@ paths:
       summary: Ping the API
       tags:
       - System
+  /user:
+    delete:
+      description: |-
+        The account will be soft deleted.
+        If the user is the last admin, the account cannot be deleted.
+        If a user is soft-deleted, the account will be permanently deleted in the future.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Last admin account
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Delete user account
+      tags:
+      - User
+  /user/email:
+    patch:
+      description: Requests an email change for the user. An email change token will
+        be sent to the new email address.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ChangeEmailQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email change request token sent
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Bad request/invalid email/already in use
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Request email change for the user
+      tags:
+      - User
+  /user/email/confirm:
+    post:
+      description: |-
+        Confirms an email change for the user.
+        The new email address will be active on the next login.
+        You have to login (authenticate) with the old email address to confirm the change.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ConfirmEmailChangeQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Email changed
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Invalid token
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Token expired
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: No email change request found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Confirm email change for the user
+      tags:
+      - User
+  /user/login:
+    post:
+      description: |-
+        Acciqures a JWT token for the user to access the API
+        Only active users can login
+        Users can downgrade their role by providing the role in the request (optional)
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/LoginQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            $ref: '#/definitions/JSendSuccess-LoginResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: User is not active
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      summary: Login for the API to get JWT token
+      tags:
+      - Login
+  /user/password:
+    patch:
+      description: |-
+        Changes the password for the user. The old password must be provided.
+        The new password will be active on the next login.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ChangePwdQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password changed
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Wrong old password/invalid new password
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Change password for the user
+      tags:
+      - User
+  /user/password/reset:
+    post:
+      description: |-
+        Requests a password reset for the user. A password reset token will be sent to the user's email.
+        Password reset tokens are valid for a limited time.
+        The API will always return the same message (200) to prevent email enumeration.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ResetPwdQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset token sent
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      summary: Request password reset
+      tags:
+      - Login
+  /user/password/reset/confirm:
+    post:
+      description: |-
+        Confirms a password reset or first password set for the user.
+        The API will always return the same message (400) on auth errors to prevent email enumeration.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ResetConfirmPwdQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Bad request/invalid token
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Token expired
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      summary: Confirm password reset or first password set
+      tags:
+      - Login
+  /user/password/reset/init:
+    post:
+      description: |-
+        Confirms a password reset or first password set for the user.
+        The API will always return the same message (400) on auth errors to prevent email enumeration.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ResetConfirmPwdQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Bad request/invalid token
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Token expired
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      summary: Confirm password reset or first password set
+      tags:
+      - Login
+  /user/profile:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User profile
+          schema:
+            $ref: '#/definitions/JSendSuccess-UserProfile'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Get the user profile information
+      tags:
+      - User
+    patch:
+      description: |-
+        Updates the user profile information. At least one field must be provided for update.
+        The following fields can be updated: `first name`, `last name`, `organization`.
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateProfileQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: No changes requested or invalid data
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Update user profile information
+      tags:
+      - User
+  /user/refresh-token:
+    post:
+      description: Refreshes the JWT token for the user to access the API
+      parameters:
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/RefreshQuery'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token
+          schema:
+            $ref: '#/definitions/JSendSuccess-LoginResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Not active/role invalid/user deleted
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      summary: Refresh JWT token
+      tags:
+      - Login
 securityDefinitions:
   Bearer:
     description: Type "Bearer" followed by a space and JWT token.
