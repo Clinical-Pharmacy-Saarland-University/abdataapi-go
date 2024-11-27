@@ -50,9 +50,9 @@ func New(statusCode int, msg string) Error {
 }
 
 type ResStatus struct {
-	Status  int    `json:"status"`
-	Message string `json:"message"`
-}
+	Status  int    `json:"status" example:"200"`      // HTTP status code of the query
+	Message string `json:"message" example:"Success"` // Status message (e.g. error message)
+} //	@name	Status
 
 func (r ResStatus) Ok() bool {
 	return r.Status == http.StatusOK

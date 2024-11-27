@@ -54,7 +54,10 @@ func switchRole(dbRole string, requestedRole *string) (string, error) {
 	}
 
 	err := validate.CanSwitchToRole(*requestedRole, dbRole)
-	return *requestedRole, fmt.Errorf("cannot switch to role: %w", err)
+	if err != nil {
+		return dbRole, fmt.Errorf("cannot switch to role: %w", err)
+	}
+	return *requestedRole, nil
 }
 
 // @Summary		Login for the API to get JWT token

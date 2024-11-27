@@ -343,7 +343,7 @@
                 }
             }
         },
-        "/adr": {
+        "/adrs/pzns": {
             "get": {
                 "description": "Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.\nThe `lang` parameter can be used to specify the language of the ADR descriptions.\nValid values are `english`, `german`, and `german-simple`.\nThe default language is `english`.\n`german-simple` returns the simplified German ADR description.",
                 "produces": [
@@ -418,6 +418,219 @@
                         "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/interactions/compounds": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "The result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one compounds if the same interaction\nis observed between multiple compounds. This can be the case if the same compound is marketed\nunder different names or derivates are considered.\nIf the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.\nIf the `doses` query parameter is set to `true`, the interaction will contain the relevant\ndoses/formulations of the compounds that are involved in the interaction.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between compounds",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of compounds",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch doses",
+                        "name": "doses",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch detailed interaction descriptions",
+                        "name": "details",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of drug-drug interactions",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_CompoundInteraction"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid compound names",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Compound(s) not found",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/interactions/pzns": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "The result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch detailed interaction descriptions",
+                        "name": "details",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of drug-drug interactions",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_PZNInteraction"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid PZNs",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "PZN(s) not found",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "This is the batch version of the `GET /interactions/pzns` endpoint.\nThe result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.\nIds for the queries are required to be unique.\nQueries will be processed in parallel.\n**It is possible that some/all queries will fail. This will result in error code `207`.**\nThe response will contain the results of all queries, even if some of them failed.\n**The user is responsible for checking the status of each query in the batch.**",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between PZNs in batch",
+                "parameters": [
+                    {
+                        "description": "Batch query for drug-drug interactions",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/PZNInteractionPostQuery"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Results with no errors",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_PZNBatchResult"
+                        }
+                    },
+                    "207": {
+                        "description": "Results with errors",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_PZNBatchResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Too many IDs or duplicate IDs",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
                         }
                     },
                     "500": {
@@ -1117,6 +1330,95 @@
                 }
             }
         },
+        "CompoundDose": {
+            "type": "object",
+            "properties": {
+                "active_substance": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "dosage_form": {
+                    "type": "string",
+                    "example": "TAB"
+                },
+                "suffix": {
+                    "type": "string",
+                    "example": "(retard)"
+                },
+                "unit": {
+                    "type": "string",
+                    "example": "mg"
+                },
+                "value": {
+                    "type": "number",
+                    "example": 500
+                }
+            }
+        },
+        "CompoundInteraction": {
+            "type": "object",
+            "properties": {
+                "compounds_left": {
+                    "description": "Victim compound(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "Aspirin"
+                    ]
+                },
+                "compounds_right": {
+                    "description": "Perpetrator compound(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "Paracetamol"
+                    ]
+                },
+                "credibility": {
+                    "description": "Credibility of the interaction",
+                    "type": "string",
+                    "example": "insufficient"
+                },
+                "direction": {
+                    "description": "Direction of the interaction",
+                    "type": "string",
+                    "example": "undirected interaction"
+                },
+                "doses_left": {
+                    "description": "Doses of the victim compounds",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundDose"
+                    }
+                },
+                "doses_right": {
+                    "description": "Doses of the perpetrator compounds",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundDose"
+                    }
+                },
+                "frequency": {
+                    "description": "Frequency of the interaction",
+                    "type": "string",
+                    "example": "common"
+                },
+                "plausibility": {
+                    "description": "Plausibility of the interaction",
+                    "type": "string",
+                    "example": "plausible mechanism"
+                },
+                "relevance": {
+                    "description": "Relevance of the interaction",
+                    "type": "string",
+                    "example": "minor"
+                }
+            }
+        },
         "ConfirmEmailChangeQuery": {
             "type": "object",
             "required": [
@@ -1373,6 +1675,57 @@
                 }
             }
         },
+        "JSendSuccess-array_CompoundInteraction": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundInteraction"
+                    }
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-array_PZNBatchResult": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PZNBatchResult"
+                    }
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-array_PZNInteraction": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PZNInteraction"
+                    }
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
         "JSendSuccess-array_model_User": {
             "type": "object",
             "properties": {
@@ -1489,6 +1842,113 @@
                     "description": "Token type",
                     "type": "string",
                     "example": "Bearer"
+                }
+            }
+        },
+        "PZNBatchResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "ID of the query",
+                    "type": "string",
+                    "example": "1"
+                },
+                "interactions": {
+                    "description": "Drug-drug interactions",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PZNInteraction"
+                    }
+                },
+                "message": {
+                    "description": "Status message (e.g. error message)",
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "description": "HTTP status code of the query",
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "PZNInteraction": {
+            "type": "object",
+            "properties": {
+                "credibility": {
+                    "description": "Credibility of the interaction",
+                    "type": "string",
+                    "example": "insufficient"
+                },
+                "direction": {
+                    "description": "Direction of the interaction",
+                    "type": "string",
+                    "example": "undirected interaction"
+                },
+                "frequency": {
+                    "description": "Frequency of the interaction",
+                    "type": "string",
+                    "example": "common"
+                },
+                "plausibility": {
+                    "description": "Plausibility of the interaction",
+                    "type": "string",
+                    "example": "plausible mechanism"
+                },
+                "pzn_left": {
+                    "description": "Victim PZN",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "1234567"
+                    ]
+                },
+                "pzn_right": {
+                    "description": "Perpetrator PZN",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "7654321"
+                    ]
+                },
+                "relevance": {
+                    "description": "Relevance of the interaction",
+                    "type": "string",
+                    "example": "minor"
+                }
+            }
+        },
+        "PZNInteractionPostQuery": {
+            "type": "object",
+            "required": [
+                "id",
+                "pzns"
+            ],
+            "properties": {
+                "details": {
+                    "description": "Detailed interaction descriptions",
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "description": "ID of the query",
+                    "type": "string",
+                    "example": "1"
+                },
+                "pzns": {
+                    "description": "Array of PZNs",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "1234567",
+                        "7654321"
+                    ]
                 }
             }
         },

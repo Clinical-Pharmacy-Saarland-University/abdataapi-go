@@ -49,12 +49,48 @@ func (ic *InteractionController) GetInterDescription(c *gin.Context) {
 	c.JSON(http.StatusOK, ic.DescriptionStruct)
 }
 
+// @Summary		Query drug-drug interactions between PZNs in batch
+//
+// @Description	This is the batch version of the `GET /interactions/pzns` endpoint.
+//
+// @Description	The result will be an array of drug-drug interactions between the provided PZNs.
+// @Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+// @Description	and direction of the interaction.
+//
+// @Description	The direction of the interaction describes the relationship between the victims (left)
+// @Description	and the perpetrators (right).
+//
+// @Description	The left size and right side of the interaction can be more than one PZN if the same interaction
+// @Description	is observed between multiple PZNs.
+//
+// @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+// @Description	Ids for the queries are required to be unique.
+//
+// @Description	Queries will be processed in parallel.
+// @Description	**It is possible that some/all queries will fail. This will result in error code `207`.**
+// @Description	The response will contain the results of all queries, even if some of them failed.
+// @Description	**The user is responsible for checking the status of each query in the batch.**
+//
+// @Tags			Drug-Drug Interactions
+//
+// @Produce		json
+// @Param			request	body		[]PZNInteractionPostQuery						true	"Batch query for drug-drug interactions"
+// @Success		200		{object}	handle.jsendSuccess[[]PZNBatchResult]			"Results with no errors"
+// @Success		207		{object}	handle.jsendSuccess[[]PZNBatchResult]			"Results with errors"
+// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+// @Failure		500		{object}	handle.jSendError								"Internal server error"
+// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Too many IDs or duplicate IDs"
+//
+// @Security		Bearer
+//
+// @Router			/interactions/pzns [post]
 func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 	type Query struct {
-		ID           string   `json:"id" binding:"required"`
-		PZNs         []string `json:"pzns" binding:"required"`
-		DetailedDesc bool     `json:"details" binding:"omitempty"`
-	}
+		ID           string   `json:"id" binding:"required" example:"1"`                 // ID of the query
+		PZNs         []string `json:"pzns" binding:"required" example:"1234567,7654321"` // Array of PZNs
+		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`        // Detailed interaction descriptions
+	} //	@name	PZNInteractionPostQuery
 	queries := []Query{}
 
 	if !handle.JSONBind(c, &queries) {
@@ -78,10 +114,10 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 	}
 
 	type BatchResult struct {
-		ID string `json:"id"`
+		ID string `json:"id" example:"1"` // ID of the query
 		apierr.ResStatus
-		Interactions *[]PZNInteraction `json:"interactions"`
-	}
+		Interactions *[]PZNInteraction `json:"interactions"` // Drug-drug interactions
+	} //	@name	PZNBatchResult
 
 	db := ic.DB
 	maxConcurrency := ic.Limits.BatchJobs
@@ -111,16 +147,45 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 			nSuccess++
 		}
 	}
-	c.JSON(apierr.BatchStatusCode(n, nSuccess), results)
+
+	handle.SuccessWithStatus(c, apierr.BatchStatusCode(n, nSuccess), results)
 }
 
-// pzns: comma separated list of PZNs
+// @Summary		Query drug-drug interactions between PZNs
+// @Description	The result will be an array of drug-drug interactions between the provided PZNs.
+// @Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+// @Description	and direction of the interaction.
+//
+// @Description	The direction of the interaction describes the relationship between the victims (left)
+// @Description	and the perpetrators (right).
+//
+// @Description	The left size and right side of the interaction can be more than one PZN if the same interaction
+// @Description	is observed between multiple PZNs.
+//
+// @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+//
+// @Tags			Drug-Drug Interactions
+//
+// @Produce		json
+// @Param			pzns	query		string											true	"Comma separated string of PZNs"			example:"1234567,7654321"
+// @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+// @Success		200		{object}	handle.jsendSuccess[[]PZNInteraction]			"List of drug-drug interactions"
+// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+// @Failure		500		{object}	handle.jSendError								"Internal server error"
+// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid PZNs"
+// @Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"PZN(s) not found"
+//
+// @Security		Bearer
+//
+// @Router			/interactions/pzns [get]
 func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
-	var query struct {
-		PZNs         string `form:"pzns" binding:"required"`
-		DetailedDesc bool   `form:"details" binding:"omitempty"`
-	}
+	type Query struct {
+		PZNs         string `form:"pzns" binding:"required" example:"1234567,7654321"`
+		DetailedDesc bool   `form:"details" binding:"omitempty" example:"true"`
+	} //	@name	PZNInteractionQuery
 
+	var query Query
 	if !handle.QueryBind(c, &query) {
 		return
 	}
@@ -133,7 +198,7 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"interactions": result})
+	handle.Success(c, result)
 }
 
 func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
@@ -202,15 +267,46 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	c.JSON(apierr.BatchStatusCode(n, nSuccess), results)
 }
 
-// compounds: comma separated list of compounds
-// doses: boolean flag to fetch doses
+// @Summary		Query drug-drug interactions between compounds
+// @Description	The result will be an array of drug-drug interactions between the provided compounds.
+// @Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+// @Description	and direction of the interaction.
+//
+// @Description	The direction of the interaction describes the relationship between the victims (left)
+// @Description	and the perpetrators (right).
+//
+// @Description	The left size and right side of the interaction can be more than one compounds if the same interaction
+// @Description	is observed between multiple compounds. This can be the case if the same compound is marketed
+// @Description	under different names or derivates are considered.
+//
+// @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+//
+// @Description	If the `doses` query parameter is set to `true`, the interaction will contain the relevant
+// @Description	doses/formulations of the compounds that are involved in the interaction.
+//
+// @Tags			Drug-Drug Interactions
+// @Produce		json
+// @Param			pzns	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
+// @Param			doses	query		boolean											false	"Fetch doses"								default:"false"
+// @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+// @Success		200		{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
+// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+// @Failure		500		{object}	handle.jSendError								"Internal server error"
+// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid compound names"
+// @Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"Compound(s) not found"
+//
+// @Security		Bearer
+//
+// @Router			/interactions/compounds [get]
 func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
-	var query struct {
-		Compounds    string `form:"compounds" binding:"required"`
-		FetchDose    bool   `form:"doses" binding:"omitempty"`
-		DetailedDesc bool   `form:"details" binding:"omitempty"`
-	}
+	type Query struct {
+		Compounds    string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`
+		FetchDose    bool   `form:"doses" binding:"omitempty" example:"true"`
+		DetailedDesc bool   `form:"details" binding:"omitempty" example:"true"`
+	} //	@name	CompoundInteractionQuery
 
+	var query Query
 	if !handle.QueryBind(c, &query) {
 		return
 	}
@@ -223,20 +319,20 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"interactions": result})
+	handle.Success(c, result)
 }
 
 type CompoundInteraction struct {
-	Plausibility *string         `json:"plausibility"`
-	Relevance    *string         `json:"relevance"`
-	Frequency    *string         `json:"frequency"`
-	Credibility  *string         `json:"credibility"`
-	Direction    *string         `json:"direction"`
-	CompoundsL   []string        `json:"compounds_left"`
-	CompoundsR   []string        `json:"compounds_right"`
-	DosesL       []*CompoundDose `json:"doses_left"`
-	DosesR       []*CompoundDose `json:"doses_right"`
-}
+	Plausibility *string         `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
+	Relevance    *string         `json:"relevance" example:"minor"`                  // Relevance of the interaction
+	Frequency    *string         `json:"frequency" example:"common"`                 // Frequency of the interaction
+	Credibility  *string         `json:"credibility" example:"insufficient"`         // Credibility of the interaction
+	Direction    *string         `json:"direction" example:"undirected interaction"` // Direction of the interaction
+	CompoundsL   []string        `json:"compounds_left" example:"Aspirin"`           // Victim compound(s)
+	CompoundsR   []string        `json:"compounds_right" example:"Paracetamol"`      // Perpetrator compound(s)
+	DosesL       []*CompoundDose `json:"doses_left"`                                 // Doses of the victim compounds
+	DosesR       []*CompoundDose `json:"doses_right"`                                // Doses of the perpetrator compounds
+} //	@name	CompoundInteraction
 
 func fetchCompoundInteractions( //nolint:gocognit // splitting up this function would make it less readable
 	compounds []string,
@@ -343,14 +439,14 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 }
 
 type PZNInteraction struct {
-	Plausibility *string  `json:"plausibility"`
-	Relevance    *string  `json:"relevance"`
-	Frequency    *string  `json:"frequency"`
-	Credibility  *string  `json:"credibility"`
-	Direction    *string  `json:"direction"`
-	PZNL         []string `json:"pzn_left"`
-	PZNR         []string `json:"pzn_right"`
-}
+	Plausibility *string  `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
+	Relevance    *string  `json:"relevance" example:"minor"`                  // Relevance of the interaction
+	Frequency    *string  `json:"frequency" example:"common"`                 // Frequency of the interaction
+	Credibility  *string  `json:"credibility" example:"insufficient"`         // Credibility of the interaction
+	Direction    *string  `json:"direction" example:"undirected interaction"` // Direction of the interaction
+	PZNL         []string `json:"pzn_left" example:"1234567"`                 // Victim PZN
+	PZNR         []string `json:"pzn_right" example:"7654321"`                // Perpetrator PZN
+} //	@name	PZNInteraction
 
 func fetchPznInteractions(
 	pzns []string,
@@ -362,12 +458,17 @@ func fetchPznInteractions(
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
 	}
 
-	famPznMap, err := common.FamToPznMap(db, pzns)
+	famPznMap, err := common.FamToPZN(db, pzns)
 	if err != nil {
 		return nil, apierr.New(http.StatusInternalServerError, err.Error())
 	}
 
-	if diff := helper.SetDifference(pzns, slices.Collect(maps.Values(famPznMap))); len(diff) > 0 {
+	var foundPzns []string
+	for pzn := range maps.Values(famPznMap) {
+		foundPzns = append(foundPzns, pzn...)
+	}
+
+	if diff := helper.SetDifference(pzns, foundPzns); len(diff) > 0 {
 		return nil, apierr.New(http.StatusNotFound, fmt.Sprintf("PZNs not found: %s", strings.Join(diff, ", ")))
 	}
 
@@ -395,7 +496,6 @@ func fetchPznInteractions(
 		LeftJoin("INT_C ON FZI_C1.Key_INT = INT_C.Key_INT")
 
 	query, args, _ := queryBuilder.ToSql()
-
 	var dbInteractions []dbInteraction
 	err = db.Select(&dbInteractions, query, args...) //nolint:musttag // need untaged fields
 	if err != nil {
@@ -422,7 +522,7 @@ type dbInteraction struct {
 
 func mapCompoundInteracions(
 	interactionTable []dbInteraction,
-	famPznMap map[uint64]string,
+	pznFamMap map[uint64][]string,
 	ic *InteractionController,
 	detailedDesc bool,
 ) []PZNInteraction {
@@ -459,10 +559,10 @@ func mapCompoundInteracions(
 			Direction:    ic.DirectionTranslator(interaction.Direction, detailedDesc),
 		}
 		for _, keyFam := range interaction.KeyFAMLBucket {
-			results[i].PZNL = append(results[i].PZNL, famPznMap[keyFam])
+			results[i].PZNL = append(results[i].PZNL, pznFamMap[keyFam]...)
 		}
 		for _, keyFam := range interaction.KeyFAMRBucket {
-			results[i].PZNR = append(results[i].PZNR, famPznMap[keyFam])
+			results[i].PZNR = append(results[i].PZNR, pznFamMap[keyFam]...)
 		}
 	}
 
@@ -472,12 +572,12 @@ func mapCompoundInteracions(
 type CompoundDose struct {
 	KeySTO          uint64   `db:"Key_STO" json:"-"`
 	KeyINT          uint64   `db:"Key_INT" json:"-"`
-	Value           *float64 `db:"Zahl" json:"value"`
-	Unit            *string  `db:"Einheit" json:"unit"`
-	Suffix          *string  `db:"Suffix" json:"suffix"`
-	DosageForm      *string  `db:"Key_DAR" json:"dosage_form"`
-	ActiveSubstance bool     `db:"ES" json:"active_substance"`
-}
+	Value           *float64 `db:"Zahl" json:"value" example:"500"`
+	Unit            *string  `db:"Einheit" json:"unit" example:"mg"`
+	Suffix          *string  `db:"Suffix" json:"suffix" example:"(retard)"`
+	DosageForm      *string  `db:"Key_DAR" json:"dosage_form" example:"TAB"`
+	ActiveSubstance bool     `db:"ES" json:"active_substance" example:"true"`
+} //	@name	CompoundDose
 
 func fetchCompoundDoses(db *sqlx.DB, keyInt, keySto []uint64) ([]CompoundDose, error) {
 	queryBuilder := squirrel.Select(

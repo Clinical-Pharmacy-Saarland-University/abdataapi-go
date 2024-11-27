@@ -38,6 +38,71 @@ definitions:
         example: inactive
         type: string
     type: object
+  CompoundDose:
+    properties:
+      active_substance:
+        example: true
+        type: boolean
+      dosage_form:
+        example: TAB
+        type: string
+      suffix:
+        example: (retard)
+        type: string
+      unit:
+        example: mg
+        type: string
+      value:
+        example: 500
+        type: number
+    type: object
+  CompoundInteraction:
+    properties:
+      compounds_left:
+        description: Victim compound(s)
+        example:
+        - Aspirin
+        items:
+          type: string
+        type: array
+      compounds_right:
+        description: Perpetrator compound(s)
+        example:
+        - Paracetamol
+        items:
+          type: string
+        type: array
+      credibility:
+        description: Credibility of the interaction
+        example: insufficient
+        type: string
+      direction:
+        description: Direction of the interaction
+        example: undirected interaction
+        type: string
+      doses_left:
+        description: Doses of the victim compounds
+        items:
+          $ref: '#/definitions/CompoundDose'
+        type: array
+      doses_right:
+        description: Doses of the perpetrator compounds
+        items:
+          $ref: '#/definitions/CompoundDose'
+        type: array
+      frequency:
+        description: Frequency of the interaction
+        example: common
+        type: string
+      plausibility:
+        description: Plausibility of the interaction
+        example: plausible mechanism
+        type: string
+      relevance:
+        description: Relevance of the interaction
+        example: minor
+        type: string
+    type: object
   ConfirmEmailChangeQuery:
     properties:
       token:
@@ -207,6 +272,42 @@ definitions:
         example: success
         type: string
     type: object
+  JSendSuccess-array_CompoundInteraction:
+    properties:
+      data:
+        description: Data with success message(s)
+        items:
+          $ref: '#/definitions/CompoundInteraction'
+        type: array
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
+  JSendSuccess-array_PZNBatchResult:
+    properties:
+      data:
+        description: Data with success message(s)
+        items:
+          $ref: '#/definitions/PZNBatchResult'
+        type: array
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
+  JSendSuccess-array_PZNInteraction:
+    properties:
+      data:
+        description: Data with success message(s)
+        items:
+          $ref: '#/definitions/PZNInteraction'
+        type: array
+      status:
+        description: Status 'success'
+        example: success
+        type: string
+    type: object
   JSendSuccess-array_model_User:
     properties:
       data:
@@ -290,6 +391,85 @@ definitions:
         description: Token type
         example: Bearer
         type: string
+    type: object
+  PZNBatchResult:
+    properties:
+      id:
+        description: ID of the query
+        example: "1"
+        type: string
+      interactions:
+        description: Drug-drug interactions
+        items:
+          $ref: '#/definitions/PZNInteraction'
+        type: array
+      message:
+        description: Status message (e.g. error message)
+        example: Success
+        type: string
+      status:
+        description: HTTP status code of the query
+        example: 200
+        type: integer
+    type: object
+  PZNInteraction:
+    properties:
+      credibility:
+        description: Credibility of the interaction
+        example: insufficient
+        type: string
+      direction:
+        description: Direction of the interaction
+        example: undirected interaction
+        type: string
+      frequency:
+        description: Frequency of the interaction
+        example: common
+        type: string
+      plausibility:
+        description: Plausibility of the interaction
+        example: plausible mechanism
+        type: string
+      pzn_left:
+        description: Victim PZN
+        example:
+        - "1234567"
+        items:
+          type: string
+        type: array
+      pzn_right:
+        description: Perpetrator PZN
+        example:
+        - "7654321"
+        items:
+          type: string
+        type: array
+      relevance:
+        description: Relevance of the interaction
+        example: minor
+        type: string
+    type: object
+  PZNInteractionPostQuery:
+    properties:
+      details:
+        description: Detailed interaction descriptions
+        example: true
+        type: boolean
+      id:
+        description: ID of the query
+        example: "1"
+        type: string
+      pzns:
+        description: Array of PZNs
+        example:
+        - "1234567"
+        - "7654321"
+        items:
+          type: string
+        type: array
+    required:
+    - id
+    - pzns
     type: object
   PingResp:
     properties:
@@ -718,7 +898,7 @@ paths:
       summary: Change user role or status
       tags:
       - Admin
-  /adr:
+  /adrs/pzns:
     get:
       description: |-
         Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.
@@ -781,6 +961,176 @@ paths:
       summary: List all drug formulation codes and their descriptions
       tags:
       - Formulation
+  /interactions/compounds:
+    get:
+      description: |-
+        The result will be an array of drug-drug interactions between the provided compounds.
+        Each interaction will contain the plausibility, relevance, frequency, credibility,
+        and direction of the interaction.
+        The direction of the interaction describes the relationship between the victims (left)
+        and the perpetrators (right).
+        The left size and right side of the interaction can be more than one compounds if the same interaction
+        is observed between multiple compounds. This can be the case if the same compound is marketed
+        under different names or derivates are considered.
+        If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+        If the `doses` query parameter is set to `true`, the interaction will contain the relevant
+        doses/formulations of the compounds that are involved in the interaction.
+      parameters:
+      - description: Comma separated string of compounds
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: Fetch doses
+        in: query
+        name: doses
+        type: boolean
+      - description: Fetch detailed interaction descriptions
+        in: query
+        name: details
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of drug-drug interactions
+          schema:
+            $ref: '#/definitions/JSendSuccess-array_CompoundInteraction'
+        "400":
+          description: Invalid compound names
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: Compound(s) not found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Query drug-drug interactions between compounds
+      tags:
+      - Drug-Drug Interactions
+  /interactions/pzns:
+    get:
+      description: |-
+        The result will be an array of drug-drug interactions between the provided PZNs.
+        Each interaction will contain the plausibility, relevance, frequency, credibility,
+        and direction of the interaction.
+        The direction of the interaction describes the relationship between the victims (left)
+        and the perpetrators (right).
+        The left size and right side of the interaction can be more than one PZN if the same interaction
+        is observed between multiple PZNs.
+        If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+      parameters:
+      - description: Comma separated string of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: Fetch detailed interaction descriptions
+        in: query
+        name: details
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of drug-drug interactions
+          schema:
+            $ref: '#/definitions/JSendSuccess-array_PZNInteraction'
+        "400":
+          description: Invalid PZNs
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "404":
+          description: PZN(s) not found
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Query drug-drug interactions between PZNs
+      tags:
+      - Drug-Drug Interactions
+    post:
+      description: |-
+        This is the batch version of the `GET /interactions/pzns` endpoint.
+        The result will be an array of drug-drug interactions between the provided PZNs.
+        Each interaction will contain the plausibility, relevance, frequency, credibility,
+        and direction of the interaction.
+        The direction of the interaction describes the relationship between the victims (left)
+        and the perpetrators (right).
+        The left size and right side of the interaction can be more than one PZN if the same interaction
+        is observed between multiple PZNs.
+        If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+        Ids for the queries are required to be unique.
+        Queries will be processed in parallel.
+        **It is possible that some/all queries will fail. This will result in error code `207`.**
+        The response will contain the results of all queries, even if some of them failed.
+        **The user is responsible for checking the status of each query in the batch.**
+      parameters:
+      - description: Batch query for drug-drug interactions
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/PZNInteractionPostQuery'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Results with no errors
+          schema:
+            $ref: '#/definitions/JSendSuccess-array_PZNBatchResult'
+        "207":
+          description: Results with errors
+          schema:
+            $ref: '#/definitions/JSendSuccess-array_PZNBatchResult'
+        "400":
+          description: Too many IDs or duplicate IDs
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "422":
+          description: Bad query format
+          schema:
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Query drug-drug interactions between PZNs in batch
+      tags:
+      - Drug-Drug Interactions
   /sys/info:
     get:
       description: Get information about the API including version and query limits.
