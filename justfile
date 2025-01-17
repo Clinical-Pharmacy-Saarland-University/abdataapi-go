@@ -48,4 +48,4 @@ init:
     @ go install github.com/air-verse/air@latest
     @ go install github.com/swaggo/swag/cmd/swag@latest
     @ scoop install main/golangci-lint
-    @ cp api/config/default_env api/.env
+    @ cp api/cfg/default_env api/.env

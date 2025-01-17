@@ -25,7 +25,7 @@ func NewSysController(resourceHandle *handle.ResourceHandle) *SysController {
 // @Tags			System
 // @Produce		json
 // @Produce		json
-// @Success		200	{object}	syscontroller.PingResp	"Response with pong message"
+// @Success		200	{object}	PingResp	"Response with pong message"
 // @Router			/sys/ping [get]
 func (sc *SysController) GetPing(c *gin.Context) {
 	type PingResponse struct {
@@ -40,7 +40,7 @@ func (sc *SysController) GetPing(c *gin.Context) {
 // @Tags			System
 // @Produce		json
 // @Produce		json
-// @Success		200	{object}	syscontroller.InfoResp	"Response with API info"
+// @Success		200	{object}	InfoResp	"Response with API info"
 // @router			/sys/info [get]
 func (sc *SysController) GetInfo(c *gin.Context) {
 	type InfoResponse struct {

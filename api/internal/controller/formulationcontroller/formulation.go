@@ -23,7 +23,7 @@ func NewFormulationController(resourceHandle *handle.ResourceHandle) *Formulatio
 // @Description	These codes are used, e.g., in the compound interaction endpoint.
 // @Tags			Formulation
 // @Produce		json
-// @Success		200	{object}	formulationcontroller.FormResponse	"Response with formulations"
+// @Success		200	{object}	FormResponse	"Response with formulations"
 // @Router			/formulations [get]
 // @Security		Bearer
 func (fc *FormulationController) GetFormulations(c *gin.Context) {
