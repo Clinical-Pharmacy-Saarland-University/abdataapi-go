@@ -60,20 +60,20 @@ func switchRole(dbRole string, requestedRole *string) (string, error) {
 	return *requestedRole, nil
 }
 
-// @Summary		Login for the API to get JWT token
-// @Description	Acciqures a JWT token for the user to access the API
-// @Description	Only active users can login
-// @Description	Users can downgrade their role by providing the role in the request (optional)
-// @Tags			Login
-// @Produce		json
-// @Param			request	body		usercontroller.LoginQuery						true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[loginResponse]				"JWT token"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"User is not active"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Login for the API to get JWT token
+//	@Description	Acciqures a JWT token for the user to access the API
+//	@Description	Only active users can login
+//	@Description	Users can downgrade their role by providing the role in the request (optional)
+//	@Tags			Login
+//	@Produce		json
+//	@Param			request	body		LoginQuery										true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[loginResponse]				"JWT token"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"User is not active"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Router			/user/login [post]
+//	@Router			/user/login [post]
 func (uc *UserController) Login(c *gin.Context) {
 	type Query struct {
 		Login    string  `json:"login" binding:"required" example:"joe@me.com"`
@@ -130,18 +130,18 @@ func (uc *UserController) Login(c *gin.Context) {
 	handle.Success(c, res)
 }
 
-// @Summary		Refresh JWT token
-// @Description	Refreshes the JWT token for the user to access the API
-// @Tags			Login
-// @Produce		json
-// @Param			request	body		usercontroller.RefreshQuery						true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[loginResponse]				"JWT token"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Not active/role invalid/user deleted"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Refresh JWT token
+//	@Description	Refreshes the JWT token for the user to access the API
+//	@Tags			Login
+//	@Produce		json
+//	@Param			request	body		RefreshQuery									true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[loginResponse]				"JWT token"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Not active/role invalid/user deleted"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Router			/user/refresh-token [post]
+//	@Router			/user/refresh-token [post]
 func (uc *UserController) RefreshToken(c *gin.Context) {
 	type Query struct {
 		Token string `json:"refresh_token" binding:"required" example:"my_refresh_token"`
@@ -190,21 +190,21 @@ func (uc *UserController) RefreshToken(c *gin.Context) {
 	handle.Success(c, res)
 }
 
-// @Summary		Change password for the user
-// @Description	Changes the password for the user. The old password must be provided.
-// @Description	The new password will be active on the next login.
-// @Tags			User
-// @Produce		json
-// @Param			request	body		usercontroller.ChangePwdQuery					true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"Password changed"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Wrong old password/invalid new password"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Change password for the user
+//	@Description	Changes the password for the user. The old password must be provided.
+//	@Description	The new password will be active on the next login.
+//	@Tags			User
+//	@Produce		json
+//	@Param			request	body		ChangePwdQuery									true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"Password changed"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Wrong old password/invalid new password"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/user/password [patch]
+//	@Router			/user/password [patch]
 func (uc *UserController) ChangePwd(c *gin.Context) {
 	type Query struct {
 		OldPassword string `json:"old_password" binding:"required" example:"old_password"` // Old password
@@ -248,18 +248,18 @@ func (uc *UserController) ChangePwd(c *gin.Context) {
 	handle.Success(c, gin.H{"message": "Password changed"})
 }
 
-// @Summary		Request password reset
-// @Description	Requests a password reset for the user. A password reset token will be sent to the user's email.
-// @Description	Password reset tokens are valid for a limited time.
-// @Description	The API will always return the same message (200) to prevent email enumeration.
-// @Tags			Login
-// @Produce		json
-// @Param			request	body		usercontroller.ResetPwdQuery					true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"Password reset token sent"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Request password reset
+//	@Description	Requests a password reset for the user. A password reset token will be sent to the user's email.
+//	@Description	Password reset tokens are valid for a limited time.
+//	@Description	The API will always return the same message (200) to prevent email enumeration.
+//	@Tags			Login
+//	@Produce		json
+//	@Param			request	body		ResetPwdQuery									true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"Password reset token sent"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Router			/user/password/reset [post]
+//	@Router			/user/password/reset [post]
 func (uc *UserController) ResetPwd(c *gin.Context) {
 	type Query struct {
 		Email string `json:"email" binding:"required,email" example:"joe@me.com"` // Email address
@@ -325,20 +325,20 @@ func (uc *UserController) ResetPwd(c *gin.Context) {
 	handle.Success(c, gin.H{"message": defaultMsg})
 }
 
-// @Summary		Confirm password reset or first password set
-// @Description	Confirms a password reset or first password set for the user.
-// @Description	The API will always return the same message (400) on auth errors to prevent email enumeration.
-// @Tags			Login
-// @Produce		json
-// @Param			request	body		usercontroller.ResetConfirmPwdQuery				true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"Password reset"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request/invalid token"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
-// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Token expired"
+//	@Summary		Confirm password reset or first password set
+//	@Description	Confirms a password reset or first password set for the user.
+//	@Description	The API will always return the same message (400) on auth errors to prevent email enumeration.
+//	@Tags			Login
+//	@Produce		json
+//	@Param			request	body		ResetConfirmPwdQuery							true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"Password reset"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request/invalid token"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Token expired"
 //
-// @Router			/user/password/reset/confirm [post]
-// @Router			/user/password/reset/init [post]
+//	@Router			/user/password/reset/confirm [post]
+//	@Router			/user/password/reset/init [post]
 func (uc *UserController) ResetPwdConfirm(c *gin.Context) {
 	type Query struct {
 		Token    string `json:"token" binding:"required" example:"my_reset_token"`   // Reset token
@@ -407,20 +407,20 @@ func (uc *UserController) ResetPwdConfirm(c *gin.Context) {
 	handle.Success(c, gin.H{"message": "Password reset"})
 }
 
-// @Summary		Request email change for the user
-// @Description	Requests an email change for the user. An email change token will be sent to the new email address.
-// @Tags			User
-// @Produce		json
-// @Param			request	body		usercontroller.ChangeEmailQuery					true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"Email change request token sent"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request/invalid email/already in use"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Request email change for the user
+//	@Description	Requests an email change for the user. An email change token will be sent to the new email address.
+//	@Tags			User
+//	@Produce		json
+//	@Param			request	body		ChangeEmailQuery								true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"Email change request token sent"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request/invalid email/already in use"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/user/email [patch]
+//	@Router			/user/email [patch]
 func (uc *UserController) ChangeEmail(c *gin.Context) {
 	type Query struct {
 		Email string `json:"email" binding:"required,email" example:"newmail@newcomp.com"` // New email address
@@ -497,24 +497,24 @@ func (uc *UserController) ChangeEmail(c *gin.Context) {
 	handle.Success(c, gin.H{"message": "Email change request token sent"})
 }
 
-// @Summary		Confirm email change for the user
-// @Description	Confirms an email change for the user.
-// @Description	The new email address will be active on the next login.
-// @Description	You have to login (authenticate) with the old email address to confirm the change.
-// @Tags			User
-// @Produce		json
-// @Param			request	body		usercontroller.ConfirmEmailChangeQuery			true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"Email changed"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid token"
-// @Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"No email change request found"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Token expired"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Confirm email change for the user
+//	@Description	Confirms an email change for the user.
+//	@Description	The new email address will be active on the next login.
+//	@Description	You have to login (authenticate) with the old email address to confirm the change.
+//	@Tags			User
+//	@Produce		json
+//	@Param			request	body		ConfirmEmailChangeQuery							true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"Email changed"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid token"
+//	@Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"No email change request found"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Token expired"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/user/email/confirm [post]
+//	@Router			/user/email/confirm [post]
 func (uc *UserController) ConfirmEmailChange(c *gin.Context) {
 	type Query struct {
 		Token string `json:"token" binding:"required" example:"my_change_token"` // Change token
@@ -567,21 +567,21 @@ func (uc *UserController) ConfirmEmailChange(c *gin.Context) {
 	handle.Success(c, gin.H{"message": "Email changed"})
 }
 
-// @Summary		Update user profile information
-// @Description	Updates the user profile information. At least one field must be provided for update.
-// @Description	The following fields can be updated: `first name`, `last name`, `organization`.
-// @Tags			User
-// @Produce		json
-// @Param			request	body		usercontroller.UpdateProfileQuery				true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"Profile updated"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"No changes requested or invalid data"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Update user profile information
+//	@Description	Updates the user profile information. At least one field must be provided for update.
+//	@Description	The following fields can be updated: `first name`, `last name`, `organization`.
+//	@Tags			User
+//	@Produce		json
+//	@Param			request	body		UpdateProfileQuery								true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"Profile updated"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"No changes requested or invalid data"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/user/profile [patch]
+//	@Router			/user/profile [patch]
 func (uc *UserController) UpdateProfile(c *gin.Context) {
 	type Query struct {
 		FirstName *string `json:"first_name,omitempty" binding:"omitempty,min=2,max=255" example:"Joe"`    // First name
@@ -629,16 +629,16 @@ func (uc *UserController) UpdateProfile(c *gin.Context) {
 	handle.Success(c, gin.H{"message": "Profile updated"})
 }
 
-// @Summary	Get the user profile information
-// @Tags		User
-// @Produce	json
-// @Success	200	{object}	handle.jsendSuccess[UserProfile]			"User profile"
-// @Failure	401	{object}	handle.jsendFailure[handle.errorResponse]	"Unauthorized"
-// @Failure	500	{object}	handle.jSendError							"Internal server error"
+//	@Summary	Get the user profile information
+//	@Tags		User
+//	@Produce	json
+//	@Success	200	{object}	handle.jsendSuccess[UserProfile]			"User profile"
+//	@Failure	401	{object}	handle.jsendFailure[handle.errorResponse]	"Unauthorized"
+//	@Failure	500	{object}	handle.jSendError							"Internal server error"
 //
-// @Security	Bearer
+//	@Security	Bearer
 //
-// @Router		/user/profile [get]
+//	@Router		/user/profile [get]
 func (uc *UserController) GetProfile(c *gin.Context) {
 	id := c.GetUint("user_id")
 
@@ -669,20 +669,20 @@ func (uc *UserController) GetProfile(c *gin.Context) {
 	handle.Success(c, userResult)
 }
 
-// @Summary		Delete user account
-// @Description	The account will be soft deleted.
-// @Description	If the user is the last admin, the account cannot be deleted.
-// @Description	If a user is soft-deleted, the account will be permanently deleted in the future.
-// @Tags			User
-// @Produce		json
-// @Success		200	{object}	handle.jsendSuccess[map[string]string]		"Password reset"
-// @Failure		401	{object}	handle.jsendFailure[handle.errorResponse]	"Unauthorized"
-// @Failure		400	{object}	handle.jsendFailure[handle.errorResponse]	"Last admin account"
-// @Failure		500	{object}	handle.jSendError							"Internal server error"
+//	@Summary		Delete user account
+//	@Description	The account will be soft deleted.
+//	@Description	If the user is the last admin, the account cannot be deleted.
+//	@Description	If a user is soft-deleted, the account will be permanently deleted in the future.
+//	@Tags			User
+//	@Produce		json
+//	@Success		200	{object}	handle.jsendSuccess[map[string]string]		"Password reset"
+//	@Failure		401	{object}	handle.jsendFailure[handle.errorResponse]	"Unauthorized"
+//	@Failure		400	{object}	handle.jsendFailure[handle.errorResponse]	"Last admin account"
+//	@Failure		500	{object}	handle.jSendError							"Internal server error"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/user [delete]
+//	@Router			/user [delete]
 func (uc *UserController) DeleteAccount(c *gin.Context) {
 	id := c.GetUint("user_id")
 

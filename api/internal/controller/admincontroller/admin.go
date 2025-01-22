@@ -30,23 +30,23 @@ func NewAdminController(resourceHandle *handle.ResourceHandle) *AdminController 
 	}
 }
 
-// @Summary		Create a new user
-// @Description	__Admin role required__
-// @Description	Create a new user for the API. Ths user will receive an email with a token to set their password.
-// @Description	You can create users with the following roles: `admin`, `user`, `approver`.
-// @Tags			Admin
-// @Produce		json
-// @Param			request	body		admincontroller.CreateUserQuery					true	"Request body"
-// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Summary		Create a new user
+//	@Description	__Admin role required__
+//	@Description	Create a new user for the API. Ths user will receive an email with a token to set their password.
+//	@Description	You can create users with the following roles: `admin`, `user`, `approver`.
+//	@Tags			Admin
+//	@Produce		json
+//	@Param			request	body		CreateUserQuery									true	"Request body"
+//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/admin/users [post]
+//	@Router			/admin/users [post]
 func (ac *AdminController) CreateUser(c *gin.Context) {
 	type Query struct {
 		Email     string `json:"email" binding:"required,email,min=2,max=255" example:"joe@gmail.com"`

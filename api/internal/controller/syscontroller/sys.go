@@ -23,7 +23,7 @@ func NewSysController(resourceHandle *handle.ResourceHandle) *SysController {
 // @Description	Ping the API to check if it is alive.
 // @Tags			System
 // @Produce		json
-// @Success		200	{object}	handle.jsendSuccess[syscontroller.PingResp]	"Response with pong message"
+// @Success		200	{object}	handle.jsendSuccess[PingResp]	"Response with pong message"
 // @Router			/sys/ping [get]
 func (sc *SysController) GetPing(c *gin.Context) {
 	type PingResponse struct {
@@ -37,7 +37,7 @@ func (sc *SysController) GetPing(c *gin.Context) {
 // @Description	Get information about the API including version and query limits.
 // @Tags			System
 // @Produce		json
-// @Success		200	{object}	handle.jsendSuccess[syscontroller.InfoResp]	"Response with API info"
+// @Success		200	{object}	handle.jsendSuccess[InfoResp]	"Response with API info"
 // @router			/sys/info [get]
 func (sc *SysController) GetInfo(c *gin.Context) {
 	type InfoResponse struct {

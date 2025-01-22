@@ -6,7 +6,7 @@ definitions:
         example: newmail@newcomp.com
         type: string
     required:
-      - email
+    - email
     type: object
   ChangePwdQuery:
     properties:
@@ -19,24 +19,8 @@ definitions:
         example: old_password
         type: string
     required:
-      - new_password
-      - old_password
-    type: object
-  ChangeUserProfileQuery:
-    properties:
-      role:
-        enum:
-          - admin
-          - user
-          - approver
-        example: user
-        type: string
-      status:
-        enum:
-          - active
-          - inactive
-        example: inactive
-        type: string
+    - new_password
+    - old_password
     type: object
   CompoundDose:
     properties:
@@ -61,14 +45,14 @@ definitions:
       compounds_left:
         description: Victim compound(s)
         example:
-          - Aspirin
+        - Aspirin
         items:
           type: string
         type: array
       compounds_right:
         description: Perpetrator compound(s)
         example:
-          - Paracetamol
+        - Paracetamol
         items:
           type: string
         type: array
@@ -83,12 +67,12 @@ definitions:
       doses_left:
         description: Doses of the victim compounds
         items:
-          $ref: "#/definitions/CompoundDose"
+          $ref: '#/definitions/CompoundDose'
         type: array
       doses_right:
         description: Doses of the perpetrator compounds
         items:
-          $ref: "#/definitions/CompoundDose"
+          $ref: '#/definitions/CompoundDose'
         type: array
       frequency:
         description: Frequency of the interaction
@@ -110,7 +94,7 @@ definitions:
         example: my_change_token
         type: string
     required:
-      - token
+    - token
     type: object
   CreateUserQuery:
     properties:
@@ -136,16 +120,16 @@ definitions:
         type: string
       role:
         enum:
-          - admin
-          - user
-          - approver
+        - admin
+        - user
+        - approver
         type: string
     required:
-      - email
-      - first_name
-      - last_name
-      - organization
-      - role
+    - email
+    - first_name
+    - last_name
+    - organization
+    - role
     type: object
   ErrorResponse:
     properties:
@@ -159,7 +143,7 @@ definitions:
       formulations:
         description: Formulations
         items:
-          $ref: "#/definitions/Formulation"
+          $ref: '#/definitions/Formulation'
         type: array
     type: object
   Formulation:
@@ -177,11 +161,11 @@ definitions:
     properties:
       api_limits:
         allOf:
-          - $ref: "#/definitions/cfg.LimitsConfig"
+        - $ref: '#/definitions/cfg.LimitsConfig'
         description: Limits
       meta_info:
         allOf:
-          - $ref: "#/definitions/cfg.MetaConfig"
+        - $ref: '#/definitions/cfg.MetaConfig'
         description: Meta
     type: object
   JSendError:
@@ -199,7 +183,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/ErrorResponse"
+        - $ref: '#/definitions/ErrorResponse'
         description: Data with error message(s)
       status:
         description: Status 'fail'
@@ -210,7 +194,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/ValidationResponse"
+        - $ref: '#/definitions/ValidationResponse'
         description: Data with error message(s)
       status:
         description: Status 'fail'
@@ -221,7 +205,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/FormResponse"
+        - $ref: '#/definitions/FormResponse'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -232,7 +216,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/InfoResp"
+        - $ref: '#/definitions/InfoResp'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -243,7 +227,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/LoginResponse"
+        - $ref: '#/definitions/LoginResponse'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -254,7 +238,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/PingResp"
+        - $ref: '#/definitions/PingResp'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -265,7 +249,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/UserProfile"
+        - $ref: '#/definitions/UserProfile'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -277,7 +261,7 @@ definitions:
       data:
         description: Data with success message(s)
         items:
-          $ref: "#/definitions/CompoundInteraction"
+          $ref: '#/definitions/CompoundInteraction'
         type: array
       status:
         description: Status 'success'
@@ -289,7 +273,7 @@ definitions:
       data:
         description: Data with success message(s)
         items:
-          $ref: "#/definitions/PZNBatchResult"
+          $ref: '#/definitions/PZNBatchResult'
         type: array
       status:
         description: Status 'success'
@@ -301,19 +285,7 @@ definitions:
       data:
         description: Data with success message(s)
         items:
-          $ref: "#/definitions/PZNInteraction"
-        type: array
-      status:
-        description: Status 'success'
-        example: success
-        type: string
-    type: object
-  JSendSuccess-array_model_User:
-    properties:
-      data:
-        description: Data with success message(s)
-        items:
-          $ref: "#/definitions/model.User"
+          $ref: '#/definitions/PZNInteraction'
         type: array
       status:
         description: Status 'success'
@@ -324,18 +296,7 @@ definitions:
     properties:
       data:
         allOf:
-          - $ref: "#/definitions/map_string_string"
-        description: Data with success message(s)
-      status:
-        description: Status 'success'
-        example: success
-        type: string
-    type: object
-  JSendSuccess-model_User:
-    properties:
-      data:
-        allOf:
-          - $ref: "#/definitions/model.User"
+        - $ref: '#/definitions/map_string_string'
         description: Data with success message(s)
       status:
         description: Status 'success'
@@ -352,14 +313,14 @@ definitions:
         type: string
       role:
         enum:
-          - admin
-          - user
-          - approver
+        - admin
+        - user
+        - approver
         example: user
         type: string
     required:
-      - login
-      - password
+    - login
+    - password
     type: object
   LoginResponse:
     properties:
@@ -401,7 +362,7 @@ definitions:
       interactions:
         description: Drug-drug interactions
         items:
-          $ref: "#/definitions/PZNInteraction"
+          $ref: '#/definitions/PZNInteraction'
         type: array
       message:
         description: Status message (e.g. error message)
@@ -433,14 +394,14 @@ definitions:
       pzn_left:
         description: Victim PZN
         example:
-          - "1234567"
+        - "1234567"
         items:
           type: string
         type: array
       pzn_right:
         description: Perpetrator PZN
         example:
-          - "7654321"
+        - "7654321"
         items:
           type: string
         type: array
@@ -462,14 +423,14 @@ definitions:
       pzns:
         description: Array of PZNs
         example:
-          - "1234567"
-          - "7654321"
+        - "1234567"
+        - "7654321"
         items:
           type: string
         type: array
     required:
-      - id
-      - pzns
+    - id
+    - pzns
     type: object
   PingResp:
     properties:
@@ -484,7 +445,7 @@ definitions:
         example: my_refresh_token
         type: string
     required:
-      - refresh_token
+    - refresh_token
     type: object
   ResetConfirmPwdQuery:
     properties:
@@ -501,9 +462,9 @@ definitions:
         example: my_reset_token
         type: string
     required:
-      - email
-      - password
-      - token
+    - email
+    - password
+    - token
     type: object
   ResetPwdQuery:
     properties:
@@ -512,7 +473,7 @@ definitions:
         example: joe@me.com
         type: string
     required:
-      - email
+    - email
     type: object
   UpdateProfileQuery:
     properties:
@@ -578,7 +539,7 @@ definitions:
       errors:
         description: Validation errors
         items:
-          $ref: "#/definitions/ValidationError"
+          $ref: '#/definitions/ValidationError'
         type: array
     type: object
   adrcontroller.ADR:
@@ -594,7 +555,7 @@ definitions:
     properties:
       adrs:
         items:
-          $ref: "#/definitions/adrcontroller.ADR"
+          $ref: '#/definitions/adrcontroller.ADR'
         type: array
       pzn:
         type: string
@@ -634,270 +595,54 @@ definitions:
     additionalProperties:
       type: string
     type: object
-  model.User:
-    properties:
-      email:
-        example: joe@me.com
-        type: string
-      first_name:
-        example: Joe
-        type: string
-      last_login:
-        example: "2021-01-01T00:00:00Z"
-        type: string
-      last_name:
-        example: Doe
-        type: string
-      organization:
-        example: ACME
-        type: string
-      role:
-        example: admin
-        type: string
-      status:
-        example: active
-        type: string
-    type: object
 info:
   contact: {}
 paths:
   /admin/users:
-    get:
-      description: |-
-        __Admin role required__
-        Get a list of users and their information based on optional query filters.
-        Soft-deleted users are not included in the response.
-      parameters:
-        - description: Filter by role
-          enum:
-            - admin
-            - user
-            - approver
-          in: query
-          name: role
-          type: string
-        - description: Filter by status
-          enum:
-            - active
-            - inactive
-          in: query
-          name: status
-          type: string
-      produces:
-        - application/json
-      responses:
-        "200":
-          description: Admin table
-          schema:
-            $ref: "#/definitions/JSendSuccess-array_model_User"
-        "400":
-          description: Bad request
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "403":
-          description: Non-admin user
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "404":
-          description: No users found
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "422":
-          description: Bad query format
-          schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
-        "500":
-          description: Internal server error
-          schema:
-            $ref: "#/definitions/JSendError"
-      security:
-        - Bearer: []
-      summary: Get user profile table
-      tags:
-        - Admin
     post:
       description: |-
         __Admin role required__
         Create a new user for the API. Ths user will receive an email with a token to set their password.
         You can create users with the following roles: `admin`, `user`, `approver`.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/CreateUserQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/CreateUserQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: User created
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Bad request
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "403":
           description: Non-admin user
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Create a new user
       tags:
-        - Admin
-  /admin/users/{email}:
-    delete:
-      description: |-
-        __Admin role required__
-        Delete a user based on the email address.
-        Only soft-deletes the user, does not remove the user from the database.
-        Admins cannot delete their own account.
-      parameters:
-        - description: User email to delete
-          in: path
-          name: email
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        "200":
-          description: User soft-deleted
-          schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "403":
-          description: Non-admin user or cannot delete own account
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "404":
-          description: User not found
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "500":
-          description: Internal server error
-          schema:
-            $ref: "#/definitions/JSendError"
-      security:
-        - Bearer: []
-      summary: Delete a user
-      tags:
-        - Admin
-    get:
-      description: |-
-        __Admin role required__
-        Get the profile of a user based on the email address.
-        Soft-deleted users can not be retrieved.
-      parameters:
-        - description: User email
-          in: path
-          name: email
-          required: true
-          type: string
-      produces:
-        - application/json
-      responses:
-        "200":
-          description: User profile
-          schema:
-            $ref: "#/definitions/JSendSuccess-model_User"
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "403":
-          description: Non-admin user
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "404":
-          description: No users found
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "500":
-          description: Internal server error
-          schema:
-            $ref: "#/definitions/JSendError"
-      security:
-        - Bearer: []
-      summary: Get profile of a user
-      tags:
-        - Admin
-    patch:
-      description: |-
-        __Admin role required__
-        Change the role or status of a user based on the email address.
-        Admins cannot change their own role or status.
-        Possible roles: `admin`, `user`, `approver`.
-        Possible statuses: `active`, `inactive`.
-      parameters:
-        - description: User email to update
-          in: path
-          name: email
-          required: true
-          type: string
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ChangeUserProfileQuery"
-      produces:
-        - application/json
-      responses:
-        "200":
-          description: User profile updated
-          schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
-        "400":
-          description: No changes requested
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "403":
-          description: Non-admin user or cannot update own account
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "404":
-          description: User not found
-          schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
-        "422":
-          description: Bad query format
-          schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
-        "500":
-          description: Internal server error
-          schema:
-            $ref: "#/definitions/JSendError"
-      security:
-        - Bearer: []
-      summary: Change user role or status
-      tags:
-        - Admin
+      - Admin
   /adrs/pzns:
     get:
       description: |-
@@ -907,27 +652,27 @@ paths:
         The default language is `english`.
         `german-simple` returns the simplified German ADR description.
       parameters:
-        - description: Comma-separated list of PZNs
-          in: query
-          name: pzns
-          required: true
-          type: string
-        - description: "Language for ADR names (default: english)"
-          enum:
-            - english
-            - german
-            - german-simple
-          in: query
-          name: lang
-          type: string
+      - description: Comma-separated list of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: 'Language for ADR names (default: english)'
+        enum:
+        - english
+        - german
+        - german-simple
+        in: query
+        name: lang
+        type: string
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of PZNs with ADRs
           schema:
             items:
-              $ref: "#/definitions/adrcontroller.PznADR"
+              $ref: '#/definitions/adrcontroller.PznADR'
             type: array
         "400":
           description: Bad request (e.g. invalid PZNs)
@@ -935,32 +680,32 @@ paths:
           description: PZN(s) not found
       summary: List ADRs for PZNs
       tags:
-        - Adverse Drug Reactions
+      - Adverse Drug Reactions
   /formulations:
     get:
       description: |-
         Drug formulation codes and their descriptions that are used in the database.
         These codes are used, e.g., in the compound interaction endpoint.
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Response with formulations
           schema:
-            $ref: "#/definitions/JSendSuccess-FormResponse"
+            $ref: '#/definitions/JSendSuccess-FormResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: List all drug formulation codes and their descriptions
       tags:
-        - Formulation
+      - Formulation
   /interactions/compounds:
     get:
       description: |-
@@ -976,51 +721,51 @@ paths:
         If the `doses` query parameter is set to `true`, the interaction will contain the relevant
         doses/formulations of the compounds that are involved in the interaction.
       parameters:
-        - description: Comma separated string of compounds
-          in: query
-          name: pzns
-          required: true
-          type: string
-        - description: Fetch doses
-          in: query
-          name: doses
-          type: boolean
-        - description: Fetch detailed interaction descriptions
-          in: query
-          name: details
-          type: boolean
+      - description: Comma separated string of compounds
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: Fetch doses
+        in: query
+        name: doses
+        type: boolean
+      - description: Fetch detailed interaction descriptions
+        in: query
+        name: details
+        type: boolean
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of drug-drug interactions
           schema:
-            $ref: "#/definitions/JSendSuccess-array_CompoundInteraction"
+            $ref: '#/definitions/JSendSuccess-array_CompoundInteraction'
         "400":
           description: Invalid compound names
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "404":
           description: Compound(s) not found
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Query drug-drug interactions between compounds
       tags:
-        - Drug-Drug Interactions
+      - Drug-Drug Interactions
   /interactions/pzns:
     get:
       description: |-
@@ -1033,47 +778,47 @@ paths:
         is observed between multiple PZNs.
         If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
       parameters:
-        - description: Comma separated string of PZNs
-          in: query
-          name: pzns
-          required: true
-          type: string
-        - description: Fetch detailed interaction descriptions
-          in: query
-          name: details
-          type: boolean
+      - description: Comma separated string of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: Fetch detailed interaction descriptions
+        in: query
+        name: details
+        type: boolean
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: List of drug-drug interactions
           schema:
-            $ref: "#/definitions/JSendSuccess-array_PZNInteraction"
+            $ref: '#/definitions/JSendSuccess-array_PZNInteraction'
         "400":
           description: Invalid PZNs
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "404":
           description: PZN(s) not found
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Query drug-drug interactions between PZNs
       tags:
-        - Drug-Drug Interactions
+      - Drug-Drug Interactions
     post:
       description: |-
         This is the batch version of the `GET /interactions/pzns` endpoint.
@@ -1091,72 +836,72 @@ paths:
         The response will contain the results of all queries, even if some of them failed.
         **The user is responsible for checking the status of each query in the batch.**
       parameters:
-        - description: Batch query for drug-drug interactions
-          in: body
-          name: request
-          required: true
-          schema:
-            items:
-              $ref: "#/definitions/PZNInteractionPostQuery"
-            type: array
+      - description: Batch query for drug-drug interactions
+        in: body
+        name: request
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/PZNInteractionPostQuery'
+          type: array
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Results with no errors
           schema:
-            $ref: "#/definitions/JSendSuccess-array_PZNBatchResult"
+            $ref: '#/definitions/JSendSuccess-array_PZNBatchResult'
         "207":
           description: Results with errors
           schema:
-            $ref: "#/definitions/JSendSuccess-array_PZNBatchResult"
+            $ref: '#/definitions/JSendSuccess-array_PZNBatchResult'
         "400":
           description: Too many IDs or duplicate IDs
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Query drug-drug interactions between PZNs in batch
       tags:
-        - Drug-Drug Interactions
+      - Drug-Drug Interactions
   /sys/info:
     get:
       description: Get information about the API including version and query limits.
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Response with API info
           schema:
-            $ref: "#/definitions/JSendSuccess-InfoResp"
+            $ref: '#/definitions/JSendSuccess-InfoResp'
       summary: Get API Info
       tags:
-        - System
+      - System
   /sys/ping:
     get:
       description: Ping the API to check if it is alive.
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Response with pong message
           schema:
-            $ref: "#/definitions/JSendSuccess-PingResp"
+            $ref: '#/definitions/JSendSuccess-PingResp'
       summary: Ping the API
       tags:
-        - System
+      - System
   /user:
     delete:
       description: |-
@@ -1164,69 +909,68 @@ paths:
         If the user is the last admin, the account cannot be deleted.
         If a user is soft-deleted, the account will be permanently deleted in the future.
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Password reset
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Last admin account
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Delete user account
       tags:
-        - User
+      - User
   /user/email:
     patch:
-      description:
-        Requests an email change for the user. An email change token will
+      description: Requests an email change for the user. An email change token will
         be sent to the new email address.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ChangeEmailQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ChangeEmailQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Email change request token sent
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Bad request/invalid email/already in use
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Request email change for the user
       tags:
-        - User
+      - User
   /user/email/confirm:
     post:
       description: |-
@@ -1234,48 +978,48 @@ paths:
         The new email address will be active on the next login.
         You have to login (authenticate) with the old email address to confirm the change.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ConfirmEmailChangeQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ConfirmEmailChangeQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Email changed
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Invalid token
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "403":
           description: Token expired
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "404":
           description: No email change request found
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Confirm email change for the user
       tags:
-        - User
+      - User
   /user/login:
     post:
       description: |-
@@ -1283,78 +1027,78 @@ paths:
         Only active users can login
         Users can downgrade their role by providing the role in the request (optional)
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/LoginQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/LoginQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: JWT token
           schema:
-            $ref: "#/definitions/JSendSuccess-LoginResponse"
+            $ref: '#/definitions/JSendSuccess-LoginResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "403":
           description: User is not active
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       summary: Login for the API to get JWT token
       tags:
-        - Login
+      - Login
   /user/password:
     patch:
       description: |-
         Changes the password for the user. The old password must be provided.
         The new password will be active on the next login.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ChangePwdQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ChangePwdQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Password changed
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Wrong old password/invalid new password
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Change password for the user
       tags:
-        - User
+      - User
   /user/password/reset:
     post:
       description: |-
@@ -1362,203 +1106,203 @@ paths:
         Password reset tokens are valid for a limited time.
         The API will always return the same message (200) to prevent email enumeration.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ResetPwdQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ResetPwdQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Password reset token sent
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       summary: Request password reset
       tags:
-        - Login
+      - Login
   /user/password/reset/confirm:
     post:
       description: |-
         Confirms a password reset or first password set for the user.
         The API will always return the same message (400) on auth errors to prevent email enumeration.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ResetConfirmPwdQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ResetConfirmPwdQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Password reset
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Bad request/invalid token
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "403":
           description: Token expired
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       summary: Confirm password reset or first password set
       tags:
-        - Login
+      - Login
   /user/password/reset/init:
     post:
       description: |-
         Confirms a password reset or first password set for the user.
         The API will always return the same message (400) on auth errors to prevent email enumeration.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/ResetConfirmPwdQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/ResetConfirmPwdQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Password reset
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: Bad request/invalid token
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "403":
           description: Token expired
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       summary: Confirm password reset or first password set
       tags:
-        - Login
+      - Login
   /user/profile:
     get:
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: User profile
           schema:
-            $ref: "#/definitions/JSendSuccess-UserProfile"
+            $ref: '#/definitions/JSendSuccess-UserProfile'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Get the user profile information
       tags:
-        - User
+      - User
     patch:
       description: |-
         Updates the user profile information. At least one field must be provided for update.
         The following fields can be updated: `first name`, `last name`, `organization`.
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/UpdateProfileQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateProfileQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: Profile updated
           schema:
-            $ref: "#/definitions/JSendSuccess-map_string_string"
+            $ref: '#/definitions/JSendSuccess-map_string_string'
         "400":
           description: No changes requested or invalid data
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       security:
-        - Bearer: []
+      - Bearer: []
       summary: Update user profile information
       tags:
-        - User
+      - User
   /user/refresh-token:
     post:
       description: Refreshes the JWT token for the user to access the API
       parameters:
-        - description: Request body
-          in: body
-          name: request
-          required: true
-          schema:
-            $ref: "#/definitions/RefreshQuery"
+      - description: Request body
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/RefreshQuery'
       produces:
-        - application/json
+      - application/json
       responses:
         "200":
           description: JWT token
           schema:
-            $ref: "#/definitions/JSendSuccess-LoginResponse"
+            $ref: '#/definitions/JSendSuccess-LoginResponse'
         "401":
           description: Unauthorized
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "403":
           description: Not active/role invalid/user deleted
           schema:
-            $ref: "#/definitions/JSendFailure-ErrorResponse"
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
         "422":
           description: Bad query format
           schema:
-            $ref: "#/definitions/JSendFailure-ValidationResponse"
+            $ref: '#/definitions/JSendFailure-ValidationResponse'
         "500":
           description: Internal server error
           schema:
-            $ref: "#/definitions/JSendError"
+            $ref: '#/definitions/JSendError'
       summary: Refresh JWT token
       tags:
-        - Login
+      - Login
 securityDefinitions:
   Bearer:
     description: Type "Bearer" followed by a space and JWT token.
