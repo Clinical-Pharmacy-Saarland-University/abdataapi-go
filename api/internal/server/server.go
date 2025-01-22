@@ -40,6 +40,26 @@ func New(config *cfg.APIConfig, debug bool) (*Server, error) {
 		return nil, fmt.Errorf("cannot migrate database: %w", err)
 	}
 
+	/////////////////////////////////////////////////////////
+	// DELETE ME
+	query := `SHOW TABLES;`
+
+	rows, err := sqlx.Query(query)
+	if err != nil {
+		log.Debug().Err(err).Msg("Failed to query tables")
+	}
+	defer rows.Close()
+
+	fmt.Println("Tables in the database:")
+	for rows.Next() {
+		var tableName string
+		if err := rows.Scan(&tableName); err != nil {
+			log.Debug().Err(err).Msg("Failed to query tables")
+		}
+		fmt.Println(tableName)
+	}
+	/////////////////////////////////////////////////////////
+
 	// create Mailer
 	mailer := responder.NewMailer(config.Mailer, config.Meta, debug)
 
