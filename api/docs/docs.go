@@ -354,7 +354,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/adr": {
+        "/adrs/pzns": {
             "get": {
                 "description": "Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.\nThe ` + "`" + `lang` + "`" + ` parameter can be used to specify the language of the ADR descriptions.\nValid values are ` + "`" + `english` + "`" + `, ` + "`" + `german` + "`" + `, and ` + "`" + `german-simple` + "`" + `.\nThe default language is ` + "`" + `english` + "`" + `.\n` + "`" + `german-simple` + "`" + ` returns the simplified German ADR description.",
                 "produces": [
@@ -422,7 +422,19 @@ const docTemplate = `{
                     "200": {
                         "description": "Response with formulations",
                         "schema": {
-                            "$ref": "#/definitions/FormResponse"
+                            "$ref": "#/definitions/JSendSuccess-FormResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
                         }
                     }
                 }
@@ -430,14 +442,221 @@ const docTemplate = `{
         },
         "/interactions/compounds": {
             "get": {
-                "responses": {}
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "The result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one compounds if the same interaction\nis observed between multiple compounds. This can be the case if the same compound is marketed\nunder different names or derivates are considered.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIf the ` + "`" + `doses` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction will contain the relevant\ndoses/formulations of the compounds that are involved in the interaction.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between compounds",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of compounds",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch doses",
+                        "name": "doses",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch detailed interaction descriptions",
+                        "name": "details",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of drug-drug interactions",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_CompoundInteraction"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid compound names",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Compound(s) not found",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/interactions/pzns": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "The result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch detailed interaction descriptions",
+                        "name": "details",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of drug-drug interactions",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_PZNInteraction"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid PZNs",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "PZN(s) not found",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "This is the batch version of the ` + "`" + `GET /interactions/pzns` + "`" + ` endpoint.\nThe result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIds for the queries are required to be unique.\nQueries will be processed in parallel.\n**It is possible that some/all queries will fail. This will result in error code ` + "`" + `207` + "`" + `.**\nThe response will contain the results of all queries, even if some of them failed.\n**The user is responsible for checking the status of each query in the batch.**",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between PZNs in batch",
+                "parameters": [
+                    {
+                        "description": "Batch query for drug-drug interactions",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/PZNInteractionPostQuery"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Results with no errors",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_PZNBatchResult"
+                        }
+                    },
+                    "207": {
+                        "description": "Results with errors",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_PZNBatchResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Too many IDs or duplicate IDs",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
             }
         },
         "/sys/info": {
             "get": {
                 "description": "Get information about the API including version and query limits.",
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
@@ -448,7 +667,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Response with API info",
                         "schema": {
-                            "$ref": "#/definitions/InfoResp"
+                            "$ref": "#/definitions/JSendSuccess-InfoResp"
                         }
                     }
                 }
@@ -458,7 +677,6 @@ const docTemplate = `{
             "get": {
                 "description": "Ping the API to check if it is alive.",
                 "produces": [
-                    "application/json",
                     "application/json"
                 ],
                 "tags": [
@@ -469,7 +687,599 @@ const docTemplate = `{
                     "200": {
                         "description": "Response with pong message",
                         "schema": {
-                            "$ref": "#/definitions/PingResp"
+                            "$ref": "#/definitions/JSendSuccess-PingResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/user": {
+            "delete": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "The account will be soft deleted.\nIf the user is the last admin, the account cannot be deleted.\nIf a user is soft-deleted, the account will be permanently deleted in the future.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Delete user account",
+                "responses": {
+                    "200": {
+                        "description": "Password reset",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Last admin account",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/email": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Requests an email change for the user. An email change token will be sent to the new email address.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Request email change for the user",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ChangeEmailQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email change request token sent",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request/invalid email/already in use",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/email/confirm": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Confirms an email change for the user.\nThe new email address will be active on the next login.\nYou have to login (authenticate) with the old email address to confirm the change.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Confirm email change for the user",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ConfirmEmailChangeQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Email changed",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Token expired",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No email change request found",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/login": {
+            "post": {
+                "description": "Acciqures a JWT token for the user to access the API\nOnly active users can login\nUsers can downgrade their role by providing the role in the request (optional)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Login for the API to get JWT token",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/LoginQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT token",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-LoginResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "User is not active",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/password": {
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Changes the password for the user. The old password must be provided.\nThe new password will be active on the next login.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Change password for the user",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ChangePwdQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password changed",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Wrong old password/invalid new password",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/password/reset": {
+            "post": {
+                "description": "Requests a password reset for the user. A password reset token will be sent to the user's email.\nPassword reset tokens are valid for a limited time.\nThe API will always return the same message (200) to prevent email enumeration.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ResetPwdQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset token sent",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/password/reset/confirm": {
+            "post": {
+                "description": "Confirms a password reset or first password set for the user.\nThe API will always return the same message (400) on auth errors to prevent email enumeration.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Confirm password reset or first password set",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ResetConfirmPwdQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request/invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Token expired",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/password/reset/init": {
+            "post": {
+                "description": "Confirms a password reset or first password set for the user.\nThe API will always return the same message (400) on auth errors to prevent email enumeration.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Confirm password reset or first password set",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ResetConfirmPwdQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request/invalid token",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Token expired",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/profile": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get the user profile information",
+                "responses": {
+                    "200": {
+                        "description": "User profile",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-UserProfile"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Updates the user profile information. At least one field must be provided for update.\nThe following fields can be updated: ` + "`" + `first name` + "`" + `, ` + "`" + `last name` + "`" + `, ` + "`" + `organization` + "`" + `.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update user profile information",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/UpdateProfileQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile updated",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "No changes requested or invalid data",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/refresh-token": {
+            "post": {
+                "description": "Refreshes the JWT token for the user to access the API",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Refresh JWT token",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RefreshQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT token",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-LoginResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Not active/role invalid/user deleted",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
                         }
                     }
                 }
@@ -477,6 +1287,38 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "ChangeEmailQuery": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "description": "New email address",
+                    "type": "string",
+                    "example": "newmail@newcomp.com"
+                }
+            }
+        },
+        "ChangePwdQuery": {
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "description": "New password",
+                    "type": "string",
+                    "example": "new_password"
+                },
+                "old_password": {
+                    "description": "Old password",
+                    "type": "string",
+                    "example": "old_password"
+                }
+            }
+        },
         "ChangeUserProfileQuery": {
             "type": "object",
             "properties": {
@@ -496,6 +1338,108 @@ const docTemplate = `{
                         "inactive"
                     ],
                     "example": "inactive"
+                }
+            }
+        },
+        "CompoundDose": {
+            "type": "object",
+            "properties": {
+                "active_substance": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "dosage_form": {
+                    "type": "string",
+                    "example": "TAB"
+                },
+                "suffix": {
+                    "type": "string",
+                    "example": "(retard)"
+                },
+                "unit": {
+                    "type": "string",
+                    "example": "mg"
+                },
+                "value": {
+                    "type": "number",
+                    "example": 500
+                }
+            }
+        },
+        "CompoundInteraction": {
+            "type": "object",
+            "properties": {
+                "compounds_left": {
+                    "description": "Victim compound(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "Aspirin"
+                    ]
+                },
+                "compounds_right": {
+                    "description": "Perpetrator compound(s)",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "Paracetamol"
+                    ]
+                },
+                "credibility": {
+                    "description": "Credibility of the interaction",
+                    "type": "string",
+                    "example": "insufficient"
+                },
+                "direction": {
+                    "description": "Direction of the interaction",
+                    "type": "string",
+                    "example": "undirected interaction"
+                },
+                "doses_left": {
+                    "description": "Doses of the victim compounds",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundDose"
+                    }
+                },
+                "doses_right": {
+                    "description": "Doses of the perpetrator compounds",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundDose"
+                    }
+                },
+                "frequency": {
+                    "description": "Frequency of the interaction",
+                    "type": "string",
+                    "example": "common"
+                },
+                "plausibility": {
+                    "description": "Plausibility of the interaction",
+                    "type": "string",
+                    "example": "plausible mechanism"
+                },
+                "relevance": {
+                    "description": "Relevance of the interaction",
+                    "type": "string",
+                    "example": "minor"
+                }
+            }
+        },
+        "ConfirmEmailChangeQuery": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "description": "Change token",
+                    "type": "string",
+                    "example": "my_change_token"
                 }
             }
         },
@@ -557,6 +1501,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "formulations": {
+                    "description": "Formulations",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/Formulation"
@@ -651,6 +1596,147 @@ const docTemplate = `{
                 }
             }
         },
+        "JSendSuccess-FormResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/FormResponse"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-InfoResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InfoResp"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-LoginResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/LoginResponse"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-PingResp": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/PingResp"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-UserProfile": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/UserProfile"
+                        }
+                    ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-array_CompoundInteraction": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundInteraction"
+                    }
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-array_PZNBatchResult": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PZNBatchResult"
+                    }
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-array_PZNInteraction": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PZNInteraction"
+                    }
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
         "JSendSuccess-array_model_User": {
             "type": "object",
             "properties": {
@@ -704,12 +1790,297 @@ const docTemplate = `{
                 }
             }
         },
+        "LoginQuery": {
+            "type": "object",
+            "required": [
+                "login",
+                "password"
+            ],
+            "properties": {
+                "login": {
+                    "type": "string",
+                    "example": "joe@me.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "user",
+                        "approver"
+                    ],
+                    "example": "user"
+                }
+            }
+        },
+        "LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_expires_in": {
+                    "description": "Access token expiration time",
+                    "type": "string",
+                    "example": "2021-07-01T12:00:00Z"
+                },
+                "access_token": {
+                    "description": "Access token",
+                    "type": "string",
+                    "example": "your_access_token"
+                },
+                "last_login": {
+                    "description": "Last login time",
+                    "type": "string",
+                    "example": "2021-07-01T12:00:00Z"
+                },
+                "refresh_expires_in": {
+                    "description": "Refresh token expiration time",
+                    "type": "string",
+                    "example": "2021-07-01T12:00:00Z"
+                },
+                "refresh_token": {
+                    "description": "Refresh token",
+                    "type": "string",
+                    "example": "your_refresh_token"
+                },
+                "role": {
+                    "description": "User role",
+                    "type": "string",
+                    "example": "user"
+                },
+                "token_type": {
+                    "description": "Token type",
+                    "type": "string",
+                    "example": "Bearer"
+                }
+            }
+        },
+        "PZNBatchResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "ID of the query",
+                    "type": "string",
+                    "example": "1"
+                },
+                "interactions": {
+                    "description": "Drug-drug interactions",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/PZNInteraction"
+                    }
+                },
+                "message": {
+                    "description": "Status message (e.g. error message)",
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "description": "HTTP status code of the query",
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
+        "PZNInteraction": {
+            "type": "object",
+            "properties": {
+                "credibility": {
+                    "description": "Credibility of the interaction",
+                    "type": "string",
+                    "example": "insufficient"
+                },
+                "direction": {
+                    "description": "Direction of the interaction",
+                    "type": "string",
+                    "example": "undirected interaction"
+                },
+                "frequency": {
+                    "description": "Frequency of the interaction",
+                    "type": "string",
+                    "example": "common"
+                },
+                "plausibility": {
+                    "description": "Plausibility of the interaction",
+                    "type": "string",
+                    "example": "plausible mechanism"
+                },
+                "pzn_left": {
+                    "description": "Victim PZN",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "1234567"
+                    ]
+                },
+                "pzn_right": {
+                    "description": "Perpetrator PZN",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "7654321"
+                    ]
+                },
+                "relevance": {
+                    "description": "Relevance of the interaction",
+                    "type": "string",
+                    "example": "minor"
+                }
+            }
+        },
+        "PZNInteractionPostQuery": {
+            "type": "object",
+            "required": [
+                "id",
+                "pzns"
+            ],
+            "properties": {
+                "details": {
+                    "description": "Detailed interaction descriptions",
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "description": "ID of the query",
+                    "type": "string",
+                    "example": "1"
+                },
+                "pzns": {
+                    "description": "Array of PZNs",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "1234567",
+                        "7654321"
+                    ]
+                }
+            }
+        },
         "PingResp": {
             "type": "object",
             "properties": {
                 "message": {
+                    "description": "Message",
                     "type": "string",
                     "example": "pong"
+                }
+            }
+        },
+        "RefreshQuery": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string",
+                    "example": "my_refresh_token"
+                }
+            }
+        },
+        "ResetConfirmPwdQuery": {
+            "type": "object",
+            "required": [
+                "email",
+                "password",
+                "token"
+            ],
+            "properties": {
+                "email": {
+                    "description": "Email address",
+                    "type": "string",
+                    "example": "joe@me.com"
+                },
+                "password": {
+                    "description": "New password",
+                    "type": "string",
+                    "example": "my_new_pwd"
+                },
+                "token": {
+                    "description": "Reset token",
+                    "type": "string",
+                    "example": "my_reset_token"
+                }
+            }
+        },
+        "ResetPwdQuery": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "description": "Email address",
+                    "type": "string",
+                    "example": "joe@me.com"
+                }
+            }
+        },
+        "UpdateProfileQuery": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "description": "First name",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "Joe"
+                },
+                "last_name": {
+                    "description": "Last name",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "Doe"
+                },
+                "organization": {
+                    "description": "Organization",
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "ACME"
+                }
+            }
+        },
+        "UserProfile": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "description": "Email address",
+                    "type": "string",
+                    "example": "joe@me.com"
+                },
+                "first_name": {
+                    "description": "First name",
+                    "type": "string",
+                    "example": "Joe"
+                },
+                "last_login": {
+                    "description": "Last login time",
+                    "type": "string",
+                    "example": "2021-07-01T12:00:00Z"
+                },
+                "last_name": {
+                    "description": "Last name",
+                    "type": "string",
+                    "example": "Doe"
+                },
+                "organization": {
+                    "description": "Organization",
+                    "type": "string",
+                    "example": "ACME"
+                },
+                "role": {
+                    "description": "User role",
+                    "type": "string",
+                    "example": "user"
                 }
             }
         },

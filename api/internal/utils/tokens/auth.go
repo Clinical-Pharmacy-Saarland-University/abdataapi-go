@@ -11,12 +11,12 @@ import (
 )
 
 type AuthTokens struct {
-	AccessToken      string    `json:"access_token"`
-	RefreshToken     string    `json:"refresh_token"`
-	TokenType        string    `json:"token_type"`
-	AccessExpiresIn  time.Time `json:"access_expires_in"`
-	RefreshExpiresIn time.Time `json:"refresh_expires_in"`
-}
+	AccessToken      string    `json:"access_token" example:"your_access_token"`          // Access token
+	RefreshToken     string    `json:"refresh_token" example:"your_refresh_token"`        // Refresh token
+	TokenType        string    `json:"token_type" example:"Bearer"`                       // Token type
+	AccessExpiresIn  time.Time `json:"access_expires_in" example:"2021-07-01T12:00:00Z"`  // Access token expiration time
+	RefreshExpiresIn time.Time `json:"refresh_expires_in" example:"2021-07-01T12:00:00Z"` // Refresh token expiration time
+} // @name AuthTokens
 
 type CustomClaims struct {
 	Email string `json:"email"`

@@ -1,17 +1,10 @@
-# ClinPharm ABDA API
+# ClinPharm ABDATA API
 
 ![GitHub go.mod Go version (branch)](https://img.shields.io/github/go-mod/go-version/Clinical-Pharmacy-Saarland-University/abdataapi-go/main?filename=api%2Fgo.mod) ![GitHub License](https://img.shields.io/github/license/Clinical-Pharmacy-Saarland-University/abdataapi-go) ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Clinical-Pharmacy-Saarland-University/abdataapi-go/publish-image.yaml?branch=main) ![Static Badge](https://img.shields.io/badge/status-under_active_development-red)
 
-**The API is currently under active development and not yet ready for production use.**
+\*\*The API is currently under active development and not yet ready for production use.
 
-This is an implementation of the ClinPharm ABDA API. The API is a RESTful API that provides access to evaluations using the [ABDA database](https://abdata.de/). The API is implemented in [Go](https://go.dev/) and uses the [Gin](https://github.com/gin-gonic/gin) framework.
-
-**The API is designed to provide the following information:**
-
-1. Drug-Drug Interaction (DDI) evaluations
-2. Adverse Drug Reaction (ADR) evaluations
-3. Priscus List evaluations
-4. Various drug-related information
+This is an implementation of the ClinPharm ABDATA API. The API is a RESTful API that provides access to evaluations using the [ABDATA database](https://abdata.de/). The API is implemented in [Go](https://go.dev/) and uses the [Gin](https://github.com/gin-gonic/gin) framework. 2. Adverse Drug Reaction (ADR) evaluations 3. Priscus List evaluations 4. Various drug-related information
 
 ## Docker Image
 
@@ -56,7 +49,12 @@ Log files will be written to `/logs` in the container.
 
 ### Database
 
+<<<<<<< HEAD
 You need a MySQL database with data from [ABDA](https://abdata.de/). The database is proprietary and not included in this or other repositories. If you have access to the ABDA database, you can use [https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db](https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db) to export the data to a MySQL database.
+=======
+You need a MySQL database with data from [ABDATA](https://abdata.de/). The database is proprietary and not included in this or other repositories. If you have access to the ABDATA database, you can use [https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db](https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db) to export the data to a MySQL database.
+
+> > > > > > > dev
 
 ### Running the API outside of Docker
 
@@ -83,7 +81,7 @@ Enviroment variables will be considered in the following order:
 
 The configuration file is a YAML file with the following structure: [config.yml](https://github.com/Clinical-Pharmacy-Saarland-University/abdataapi-go/blob/main/api/cfg/default_config.yml)
 
-### Local Development
+## Local Development
 
 1. You need Go Version 1.23 or higher.
 2. You need to install [air](https://github.com/air-verse/air) and [swag](https://github.com/swaggo/swag) for development.

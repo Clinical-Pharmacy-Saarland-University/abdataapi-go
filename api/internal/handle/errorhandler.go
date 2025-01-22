@@ -12,6 +12,10 @@ func Success(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, newJSendSuccess(data))
 }
 
+func SuccessWithStatus(c *gin.Context, status int, data interface{}) {
+	c.JSON(status, newJSendSuccess(data))
+}
+
 func ServerError(c *gin.Context, err error) {
 	Error(c, apierr.New(http.StatusInternalServerError, err.Error()))
 }

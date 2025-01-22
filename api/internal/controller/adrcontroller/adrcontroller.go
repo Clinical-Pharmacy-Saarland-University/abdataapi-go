@@ -46,7 +46,7 @@ func NewADRController(resourceHandle *handle.ResourceHandle) *ADRController {
 // @Success		200		{array}	PznADR	"List of PZNs with ADRs"
 // @Failure		400		"Bad request (e.g. invalid PZNs)"
 // @Failure		404		"PZN(s) not found"
-// @Router			/adr [get]
+// @Router			/adrs/pzns [get]
 func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 	var query = struct {
 		PZNs     string `form:"pzns"`
@@ -86,12 +86,17 @@ func fetchPznAdrs(pzns []string, db *sqlx.DB, ac *ADRController, lang string) ([
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
 	}
 
-	famPznMap, err := common.FamToPznMap(db, pzns)
+	famPznMap, err := common.FamToPZN(db, pzns)
 	if err != nil {
 		return nil, apierr.New(http.StatusInternalServerError, err.Error())
 	}
 
-	if diff := helper.SetDifference(pzns, slices.Collect(maps.Values(famPznMap))); len(diff) > 0 {
+	var foundPzns []string
+	for pzn := range maps.Values(famPznMap) {
+		foundPzns = append(foundPzns, pzn...)
+	}
+
+	if diff := helper.SetDifference(pzns, foundPzns); len(diff) > 0 {
 		return nil, apierr.New(http.StatusNotFound, fmt.Sprintf("PZNs not found: %s", strings.Join(diff, ", ")))
 	}
 
@@ -106,12 +111,11 @@ func fetchPznAdrs(pzns []string, db *sqlx.DB, ac *ADRController, lang string) ([
 		famMap[adr.KeyFAM] = append(famMap[adr.KeyFAM], adr)
 	}
 
-	pznFamMap := helper.SwapMap(famPznMap)
-	pznAdrs := make([]PznADR, len(pzns))
-	for i, pzn := range pzns {
-		pznAdrs[i] = PznADR{
-			PZN:  pzn,
-			ADRs: famMap[pznFamMap[pzn]],
+	pznAdrs := make([]PznADR, 0, len(pzns))
+	for key, adr := range famMap {
+		pzns := famPznMap[key]
+		for _, pzn := range pzns {
+			pznAdrs = append(pznAdrs, PznADR{PZN: pzn, ADRs: adr})
 		}
 	}
 

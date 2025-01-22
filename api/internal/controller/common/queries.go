@@ -12,9 +12,9 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-func FamToPznMap(db *sqlx.DB, pzns []string) (map[uint64]string, error) {
-	n := len(pzns)
-	queryBuilder := squirrel.Select("PZN", "Key_FAM").From("PAE_DB").Where(squirrel.Eq{"PZN": pzns}).Limit(uint64(n))
+func FamToPZN(db *sqlx.DB, pzns []string) (map[uint64][]string, error) {
+	//n := len(pzns)
+	queryBuilder := squirrel.Select("PZN", "Key_FAM").From("PAE_DB").Where(squirrel.Eq{"PZN": pzns})
 	query, args, _ := queryBuilder.ToSql()
 
 	var paePairs []struct {
@@ -26,9 +26,10 @@ func FamToPznMap(db *sqlx.DB, pzns []string) (map[uint64]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error fetching FAM-PZN pairs: %w", err)
 	}
-	famPZNMap := make(map[uint64]string, len(paePairs))
+
+	famPZNMap := make(map[uint64][]string, len(paePairs))
 	for _, paePair := range paePairs {
-		famPZNMap[paePair.KeyFAM] = paePair.PZN
+		famPZNMap[paePair.KeyFAM] = append(famPZNMap[paePair.KeyFAM], paePair.PZN)
 	}
 
 	return famPZNMap, nil
