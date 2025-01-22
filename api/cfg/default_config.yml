@@ -2,7 +2,7 @@ meta:
   api_name: "ABDA API"
   api_description: "A REST-like API to access the ABDA Database."
   api_version: "0.0.1"
-  api_url: "https://medinfo.clinicalpharmacy.me"
+  api_url: "https://medinfo.clinicalpharmacy.de"
   group: "/api/v1"
 server:
   read_write_timeout: "120s"
@@ -21,7 +21,7 @@ database:
 auth_token:
   access_expiration_time: "15m"
   refresh_expiration_time: "24h"
-  issuer: "https://medinfo.clinicalpharmacy.me"
+  issuer: "https://medinfo.clinicalpharmacy.de"
 reset_token:
   expiration_time: "48h"
   retry_interval: "24h"
