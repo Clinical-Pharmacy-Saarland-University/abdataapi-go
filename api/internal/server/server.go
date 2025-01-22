@@ -57,9 +57,7 @@ func New(config *cfg.APIConfig, debug bool) (*Server, error) {
 
 	// middleware
 	r.Use(gin.CustomRecovery(middleware.RecoveryHandler))
-	if debug {
-		r.Use(gin.Logger())
-	}
+	r.Use(gin.Logger())
 
 	// routes
 	registerRoutes(r, resourceHandle)
