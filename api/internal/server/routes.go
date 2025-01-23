@@ -92,6 +92,7 @@ func RegisterAdminRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHand
 	authUser.Use(middleware.Authentication(&resourceHandle.AuthCfg), middleware.AdminAccess())
 	{
 		authUser.POST("/users", c.CreateUser)
+		authUser.POST("/users/service", c.CreateServiceUser)
 		authUser.GET("/users", c.GetUsers)
 		authUser.GET("/users/:email", c.GetUserByEmail)
 		authUser.DELETE("/users/:email", c.DeleteUserByEmail)
