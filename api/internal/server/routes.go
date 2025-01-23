@@ -102,39 +102,43 @@ func RegisterAdminRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHand
 func RegisterFormulationRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := formulationcontroller.NewFormulationController(resourceHandle)
 
-	profiles := r.Group("/formulations")
+	route := r.Group("/formulations")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
-		profiles.GET("/", c.GetFormulations)
+		route.GET("/", c.GetFormulations)
 	}
 }
 
 func RegisterInteractionRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := interactioncontroller.NewInteractionController(resourceHandle)
 
-	profiles := r.Group("/interactions")
+	route := r.Group("/interactions")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
-		profiles.GET("/description", c.GetInterDescription)
-		profiles.GET("/pzns", c.GetInterPZNs)
-		profiles.POST("/pzns", c.PostInterPZNs)
-		profiles.GET("/compounds", c.GetInterCompounds)
-		profiles.POST("/compounds", c.PostInterCompounds)
+		route.GET("/description", c.GetInterDescription)
+		route.GET("/pzns", c.GetInterPZNs)
+		route.POST("/pzns", c.PostInterPZNs)
+		route.GET("/compounds", c.GetInterCompounds)
+		route.POST("/compounds", c.PostInterCompounds)
 	}
 }
 
 func RegisterPZNRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := pzncontroller.NewPZNController(resourceHandle)
 
-	profiles := r.Group("/pzn")
+	route := r.Group("/pzn")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
-		profiles.GET("/activecompounds/:pzn", c.GetActiveCompounds)
+		route.GET("/activecompounds/:pzn", c.GetActiveCompounds)
 	}
 }
 
 func RegisterADRRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := adrcontroller.NewADRController(resourceHandle)
 
-	profiles := r.Group("/adrs")
+	route := r.Group("/adrs")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
-		profiles.GET("/pzns", c.GetAdrsForPZNs)
+		route.GET("/pzns", c.GetAdrsForPZNs)
 	}
 }
