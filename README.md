@@ -51,8 +51,6 @@ Log files will be written to `/logs` in the container.
 
 You need a MySQL database with data from [ABDA](https://abdata.de/). The database is proprietary and not included in this or other repositories. If you have access to the ABDA database, you can use [https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db](https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db) to export the data to a MySQL database.
 
-> > > > > > > dev
-
 ### Running the API outside of Docker
 
 The API has the following command line options:

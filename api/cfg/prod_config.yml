@@ -2,7 +2,7 @@ meta:
   api_name: "ABDA API"
   api_description: "A REST-like API to access the ABDA Database."
   api_version: "0.0.1"
-  api_url: "https://medinfo.precisiondosing.de"
+  api_url: "medinfo.precisiondosing.de"
   group: "/api/v1"
 server:
   read_write_timeout: "120s"
