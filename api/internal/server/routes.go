@@ -69,7 +69,7 @@ func RegisterUserRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandl
 		user.POST("/login", c.Login)
 		user.POST("/refresh-token", c.RefreshToken)
 		user.POST("/password/reset", c.ResetPwd)
-		user.POST("/password/init", c.ResetPwd)
+		user.POST("/password/init", c.ResetPwdConfirm)
 		user.POST("/password/reset/confirm", c.ResetPwdConfirm)
 	}
 
