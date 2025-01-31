@@ -89,13 +89,13 @@ If you did not request this, please ignore this email and your email will remain
 
 To confirm the change, use this endpoint:
 
-%s/user/email/confirm
+https://%s/user/email/confirm
 
 with token: %s
 
 As an example, you can use the following curl command:
 
-curl -X POST %s/user/email/confirm \
+curl -X POST https://%s/user/email/confirm \
 -H "Authorization: Bearer <your_jwt_token>" \
 -H "Content-Type: application/json" \
 -d '{
@@ -117,13 +117,13 @@ func newAccountMsg(fullName, email, apiName, apiDomain, token string, expiration
 An account for the %s was created.
 To get started, please set your initial password by using this endpoint:
 
-%s/user/password/init
+https://%s/user/password/init
 
 with token: %s
 
 As an example, you can use the following curl command:
 
-curl -X POST %s/user/password/init \
+curl -X POST https://%s/user/password/init \
 -H "Content-Type: application/json" \
 -d '{
 	"token": "%s",
@@ -145,13 +145,13 @@ An password reset for %s was requested.
 If you did not request this, please ignore this email and your password will remain unchanged.
 To reset your password, use this endpoint:
 
-%s/user/password/reset/confirm
+https://%s/user/password/reset/confirm
 
 with token: %s
 
 As an example, you can use the following curl command:
 
-curl -X POST %s/user/password/reset/confirm \
+curl -X POST https://%s/user/password/reset/confirm \
 -H "Content-Type: application/json" \
 -d '{
 	"token": "%s",
