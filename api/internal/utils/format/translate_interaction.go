@@ -82,6 +82,22 @@ func NewIntCredibilityTranslator() func(*int, bool) *string {
 	return baseTranslatorFactory(translator, detailedTranslator)
 }
 
+func NewQTCategoryTranslator() func(*int, bool) *string {
+	translator := map[int]string{
+		10079780: "known risk",
+		10079781: "possible risk",
+		10079782: "conditional risk",
+	}
+
+	detailedTranslator := map[int]string{
+		10079780: "Known risk for Torsade de pointes according to crediblemeds.org",
+		10079781: "Possible risk for Torsade de pointes according to crediblemeds.org",
+		10079782: "Conditional risk for Torsade de pointes according to crediblemeds.org",
+	}
+
+	return baseTranslatorFactory(translator, detailedTranslator)
+}
+
 func NewIntDirectionTranslator() func(*int, bool) *string {
 	translator := map[int]string{
 		0: "undirected interaction",

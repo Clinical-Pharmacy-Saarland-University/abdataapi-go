@@ -81,6 +81,72 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/users/service": {
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "__Admin role required__\nCreate a new service user for the API.\nYou can create users with the following roles: ` + "`" + `admin` + "`" + `, ` + "`" + `user` + "`" + `, ` + "`" + `approver` + "`" + `.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create a new service user",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/CreateServiceUserQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User created",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Non-admin user",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
         "/adrs/pzns": {
             "get": {
                 "description": "Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.\nThe ` + "`" + `lang` + "`" + ` parameter can be used to specify the language of the ADR descriptions.\nValid values are ` + "`" + `english` + "`" + `, ` + "`" + `german` + "`" + `, and ` + "`" + `german-simple` + "`" + `.\nThe default language is ` + "`" + `english` + "`" + `.\n` + "`" + `german-simple` + "`" + ` returns the simplified German ADR description.",
@@ -376,6 +442,131 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/JSendError"
                         }
+                    }
+                }
+            }
+        },
+        "/priscus/pzns": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get Priscus status for one or more PZNs. Each PZN can only have one priscus status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Priscus"
+                ],
+                "summary": "List Priscus status for PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PZNs with Priscus status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/priscuscontroller.PriscusResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. invalid PZNs)"
+                    },
+                    "404": {
+                        "description": "PZN(s) not found"
+                    }
+                }
+            }
+        },
+        "/qt/pzns": {
+            "get": {
+                "description": "Get QT status for one or more PZNs. Each PZN can only have one QT status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "QT"
+                ],
+                "summary": "List QT status for PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PZNs with QT status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/qtcontroller.QTResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. invalid PZNs)"
+                    },
+                    "404": {
+                        "description": "PZN(s) not found"
+                    }
+                }
+            },
+            "post": {
+                "description": "Retrieve QT status for multiple sets of PZNs.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "QT"
+                ],
+                "summary": "List QT status for PZNs via POST request",
+                "parameters": [
+                    {
+                        "description": "Array of ID and PZN lists",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/qtcontroller.QTRequest"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PZNs with QT status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/qtcontroller.QTResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. invalid PZNs)"
+                    },
+                    "404": {
+                        "description": "PZN(s) not found"
                     }
                 }
             }
@@ -710,50 +901,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/password/reset": {
-            "post": {
-                "description": "Requests a password reset for the user. A password reset token will be sent to the user's email.\nPassword reset tokens are valid for a limited time.\nThe API will always return the same message (200) to prevent email enumeration.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Login"
-                ],
-                "summary": "Request password reset",
-                "parameters": [
-                    {
-                        "description": "Request body",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/ResetPwdQuery"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Password reset token sent",
-                        "schema": {
-                            "$ref": "#/definitions/JSendSuccess-map_string_string"
-                        }
-                    },
-                    "422": {
-                        "description": "Bad query format",
-                        "schema": {
-                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "$ref": "#/definitions/JSendError"
-                        }
-                    }
-                }
-            }
-        },
-        "/user/password/reset/confirm": {
+        "/user/password/init": {
             "post": {
                 "description": "Confirms a password reset or first password set for the user.\nThe API will always return the same message (400) on auth errors to prevent email enumeration.",
                 "produces": [
@@ -808,7 +956,50 @@ const docTemplate = `{
                 }
             }
         },
-        "/user/password/reset/init": {
+        "/user/password/reset": {
+            "post": {
+                "description": "Requests a password reset for the user. A password reset token will be sent to the user's email.\nPassword reset tokens are valid for a limited time.\nThe API will always return the same message (200) to prevent email enumeration.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Login"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "Request body",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/ResetPwdQuery"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password reset token sent",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            }
+        },
+        "/user/password/reset/confirm": {
             "post": {
                 "description": "Confirms a password reset or first password set for the user.\nThe API will always return the same message (400) on auth errors to prevent email enumeration.",
                 "produces": [
@@ -1145,6 +1336,55 @@ const docTemplate = `{
                     "description": "Change token",
                     "type": "string",
                     "example": "my_change_token"
+                }
+            }
+        },
+        "CreateServiceUserQuery": {
+            "type": "object",
+            "required": [
+                "email",
+                "first_name",
+                "last_name",
+                "organization",
+                "password",
+                "role"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "joe@gmail.com"
+                },
+                "first_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "Joe"
+                },
+                "last_name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "Doe"
+                },
+                "organization": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 2,
+                    "example": "ACME"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "password123"
+                },
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "user",
+                        "approver"
+                    ]
                 }
             }
         },
@@ -1855,6 +2095,42 @@ const docTemplate = `{
             "type": "object",
             "additionalProperties": {
                 "type": "string"
+            }
+        },
+        "priscuscontroller.PriscusResponse": {
+            "type": "object",
+            "properties": {
+                "PZN": {
+                    "type": "string"
+                },
+                "priscus": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "qtcontroller.QTRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "pzns": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "qtcontroller.QTResponse": {
+            "type": "object",
+            "properties": {
+                "pzn": {
+                    "type": "string"
+                },
+                "qt_category": {
+                    "type": "string"
+                }
             }
         }
     },

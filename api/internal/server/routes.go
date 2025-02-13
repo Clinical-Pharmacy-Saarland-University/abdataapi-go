@@ -6,7 +6,9 @@ import (
 	"observeddb-go-api/internal/controller/adrcontroller"
 	"observeddb-go-api/internal/controller/formulationcontroller"
 	"observeddb-go-api/internal/controller/interactioncontroller"
+	"observeddb-go-api/internal/controller/priscuscontroller"
 	"observeddb-go-api/internal/controller/pzncontroller"
+	"observeddb-go-api/internal/controller/qtcontroller"
 	"observeddb-go-api/internal/controller/syscontroller"
 	"observeddb-go-api/internal/controller/usercontroller"
 	"observeddb-go-api/internal/handle"
@@ -134,6 +136,16 @@ func RegisterPZNRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle
 	}
 }
 
+func RegisterPriscusRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
+	c := priscuscontroller.NewPriscusController(resourceHandle)
+
+	route := r.Group("/priscus")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
+	{
+		route.GET("/pzns", c.GetPriscusStatus)
+	}
+}
+
 func RegisterADRRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := adrcontroller.NewADRController(resourceHandle)
 
@@ -141,5 +153,15 @@ func RegisterADRRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
 		route.GET("/pzns", c.GetAdrsForPZNs)
+	}
+}
+
+func RegisterQTRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
+	c := qtcontroller.NewQTController(resourceHandle)
+
+	route := r.Group("/qt")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
+	{
+		route.GET("/pzns", c.GetQTStatus)
 	}
 }

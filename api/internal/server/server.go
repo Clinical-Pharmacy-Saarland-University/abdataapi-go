@@ -109,7 +109,9 @@ func registerRoutes(r *gin.Engine, resourceHandle *handle.ResourceHandle) {
 	RegisterFormulationRoutes(api, resourceHandle)
 	RegisterInteractionRoutes(api, resourceHandle)
 	RegisterADRRoutes(api, resourceHandle)
+	RegisterPriscusRoutes(api, resourceHandle)
 	RegisterPZNRoutes(api, resourceHandle)
+	RegisterQTRoutes(api, resourceHandle)
 }
 
 func parseTrustedProxies(proxies string) []string {
