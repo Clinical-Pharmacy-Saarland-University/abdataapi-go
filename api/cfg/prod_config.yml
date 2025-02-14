@@ -26,6 +26,6 @@ reset_token:
   expiration_time: "48h"
   retry_interval: "24h"
 limits:
-  interaction_drugs: 50
+  interaction_drugs: 100
   batch_queries: 100
   batch_jobs: 25
