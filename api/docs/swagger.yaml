@@ -641,6 +641,42 @@ definitions:
       priscus:
         type: boolean
     type: object
+  pzncontroller.Compound:
+    properties:
+      compound:
+        items:
+          $ref: '#/definitions/pzncontroller.CompoundName'
+        type: array
+    type: object
+  pzncontroller.CompoundName:
+    properties:
+      name:
+        type: string
+      preferred:
+        type: boolean
+      pzn:
+        type: string
+      standards:
+        items:
+          type: string
+        type: array
+    type: object
+  pzncontroller.ProductInfo:
+    properties:
+      category:
+        type: string
+      is_combination:
+        type: boolean
+      pzn:
+        type: string
+    type: object
+  pzncontroller.ProductInfos:
+    properties:
+      product_info:
+        items:
+          $ref: '#/definitions/pzncontroller.ProductInfo'
+        type: array
+    type: object
   qtcontroller.QTRequest:
     properties:
       id:
@@ -1011,6 +1047,61 @@ paths:
       summary: List Priscus status for PZNs
       tags:
       - Priscus
+  /product/activecompounds/pzns:
+    get:
+      description: Get active compounds for one or more PZNs. Each PZN can only have
+        multiple active compounds.
+      parameters:
+      - description: Comma separated string of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of PZNs with active compounds
+          schema:
+            items:
+              $ref: '#/definitions/pzncontroller.Compound'
+            type: array
+        "400":
+          description: Bad request (e.g. invalid PZNs)
+        "404":
+          description: PZN(s) not found
+      security:
+      - Bearer: []
+      summary: List active compounds for PZNs
+      tags:
+      - Product
+  /product/info/pzns:
+    get:
+      description: Get product info (is_combination, category) for one or more PZNs.
+      parameters:
+      - description: Comma separated string of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of PZNs with product info
+          schema:
+            items:
+              $ref: '#/definitions/pzncontroller.ProductInfos'
+            type: array
+        "400":
+          description: Bad request (e.g. invalid PZNs)
+        "404":
+          description: PZN(s) not found
+      security:
+      - Bearer: []
+      summary: List product info for PZNs
+      tags:
+      - Product
   /qt/pzns:
     get:
       description: Get QT status for one or more PZNs. Each PZN can only have one

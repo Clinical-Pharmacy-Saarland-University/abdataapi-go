@@ -489,6 +489,92 @@ const docTemplate = `{
                 }
             }
         },
+        "/product/activecompounds/pzns": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get active compounds for one or more PZNs. Each PZN can only have multiple active compounds.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "List active compounds for PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PZNs with active compounds",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/pzncontroller.Compound"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. invalid PZNs)"
+                    },
+                    "404": {
+                        "description": "PZN(s) not found"
+                    }
+                }
+            }
+        },
+        "/product/info/pzns": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get product info (is_combination, category) for one or more PZNs.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "List product info for PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PZNs with product info",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/pzncontroller.ProductInfos"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. invalid PZNs)"
+                    },
+                    "404": {
+                        "description": "PZN(s) not found"
+                    }
+                }
+            }
+        },
         "/qt/pzns": {
             "get": {
                 "description": "Get QT status for one or more PZNs. Each PZN can only have one QT status.",
@@ -2105,6 +2191,62 @@ const docTemplate = `{
                 },
                 "priscus": {
                     "type": "boolean"
+                }
+            }
+        },
+        "pzncontroller.Compound": {
+            "type": "object",
+            "properties": {
+                "compound": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.CompoundName"
+                    }
+                }
+            }
+        },
+        "pzncontroller.CompoundName": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "preferred": {
+                    "type": "boolean"
+                },
+                "pzn": {
+                    "type": "string"
+                },
+                "standards": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "pzncontroller.ProductInfo": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "is_combination": {
+                    "type": "boolean"
+                },
+                "pzn": {
+                    "type": "string"
+                }
+            }
+        },
+        "pzncontroller.ProductInfos": {
+            "type": "object",
+            "properties": {
+                "product_info": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.ProductInfo"
+                    }
                 }
             }
         },

@@ -129,10 +129,11 @@ func RegisterInteractionRoutes(r *gin.RouterGroup, resourceHandle *handle.Resour
 func RegisterPZNRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
 	c := pzncontroller.NewPZNController(resourceHandle)
 
-	route := r.Group("/pzn")
+	route := r.Group("/product")
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
-		route.GET("/activecompounds/:pzn", c.GetActiveCompounds)
+		route.GET("/activecompounds/pzns", c.GetActiveCompounds)
+		route.GET("/info/pzns", c.GetProductInfo)
 	}
 }
 
