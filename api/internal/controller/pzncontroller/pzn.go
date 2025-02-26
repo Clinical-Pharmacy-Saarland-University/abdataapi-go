@@ -56,7 +56,7 @@ func (pc *PZNController) GetActiveCompounds(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"active_compounds": result})
+	handle.Success(c, result)
 }
 
 type CompoundName struct {
@@ -178,7 +178,7 @@ func (pc *PZNController) GetProductInfo(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"product_info": result})
+	handle.Success(c, result)
 }
 
 // ProductInfo represents information about a product

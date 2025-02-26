@@ -49,42 +49,42 @@ func (ic *InteractionController) GetInterDescription(c *gin.Context) {
 	c.JSON(http.StatusOK, ic.DescriptionStruct)
 }
 
-// @Summary		Query drug-drug interactions between PZNs in batch
+//	@Summary		Query drug-drug interactions between PZNs in batch
 //
-// @Description	This is the batch version of the `GET /interactions/pzns` endpoint.
+//	@Description	This is the batch version of the `GET /interactions/pzns` endpoint.
 //
-// @Description	The result will be an array of drug-drug interactions between the provided PZNs.
-// @Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
-// @Description	and direction of the interaction.
+//	@Description	The result will be an array of drug-drug interactions between the provided PZNs.
+//	@Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+//	@Description	and direction of the interaction.
 //
-// @Description	The direction of the interaction describes the relationship between the victims (left)
-// @Description	and the perpetrators (right).
+//	@Description	The direction of the interaction describes the relationship between the victims (left)
+//	@Description	and the perpetrators (right).
 //
-// @Description	The left size and right side of the interaction can be more than one PZN if the same interaction
-// @Description	is observed between multiple PZNs.
+//	@Description	The left size and right side of the interaction can be more than one PZN if the same interaction
+//	@Description	is observed between multiple PZNs.
 //
-// @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
-// @Description	Ids for the queries are required to be unique.
+//	@Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+//	@Description	Ids for the queries are required to be unique.
 //
-// @Description	Queries will be processed in parallel.
-// @Description	**It is possible that some/all queries will fail. This will result in error code `207`.**
-// @Description	The response will contain the results of all queries, even if some of them failed.
-// @Description	**The user is responsible for checking the status of each query in the batch.**
+//	@Description	Queries will be processed in parallel.
+//	@Description	**It is possible that some/all queries will fail. This will result in error code `207`.**
+//	@Description	The response will contain the results of all queries, even if some of them failed.
+//	@Description	**The user is responsible for checking the status of each query in the batch.**
 //
-// @Tags			Drug-Drug Interactions
+//	@Tags			Drug-Drug Interactions
 //
-// @Produce		json
-// @Param			request	body		[]PZNInteractionPostQuery						true	"Batch query for drug-drug interactions"
-// @Success		200		{object}	handle.jsendSuccess[[]PZNBatchResult]			"Results with no errors"
-// @Success		207		{object}	handle.jsendSuccess[[]PZNBatchResult]			"Results with errors"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Too many IDs or duplicate IDs"
+//	@Produce		json
+//	@Param			request	body		[]PZNInteractionPostQuery						true	"Batch query for drug-drug interactions"
+//	@Success		200		{object}	handle.jsendSuccess[[]PZNBatchResult]			"Results with no errors"
+//	@Success		207		{object}	handle.jsendSuccess[[]PZNBatchResult]			"Results with errors"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Too many IDs or duplicate IDs"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/interactions/pzns [post]
+//	@Router			/interactions/pzns [post]
 func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 	type Query struct {
 		ID           string   `json:"id" binding:"required" example:"1"`                 // ID of the query
@@ -151,34 +151,34 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 	handle.SuccessWithStatus(c, apierr.BatchStatusCode(n, nSuccess), results)
 }
 
-// @Summary		Query drug-drug interactions between PZNs
-// @Description	The result will be an array of drug-drug interactions between the provided PZNs.
-// @Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
-// @Description	and direction of the interaction.
+//	@Summary		Query drug-drug interactions between PZNs
+//	@Description	The result will be an array of drug-drug interactions between the provided PZNs.
+//	@Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+//	@Description	and direction of the interaction.
 //
-// @Description	The direction of the interaction describes the relationship between the victims (left)
-// @Description	and the perpetrators (right).
+//	@Description	The direction of the interaction describes the relationship between the victims (left)
+//	@Description	and the perpetrators (right).
 //
-// @Description	The left size and right side of the interaction can be more than one PZN if the same interaction
-// @Description	is observed between multiple PZNs.
+//	@Description	The left size and right side of the interaction can be more than one PZN if the same interaction
+//	@Description	is observed between multiple PZNs.
 //
-// @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+//	@Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
 //
-// @Tags			Drug-Drug Interactions
+//	@Tags			Drug-Drug Interactions
 //
-// @Produce		json
-// @Param			pzns	query		string											true	"Comma separated string of PZNs"			example:"1234567,7654321"
-// @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
-// @Success		200		{object}	handle.jsendSuccess[[]PZNInteraction]			"List of drug-drug interactions"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid PZNs"
-// @Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"PZN(s) not found"
+//	@Produce		json
+//	@Param			pzns	query		string											true	"Comma separated string of PZNs"			example:"1234567,7654321"
+//	@Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+//	@Success		200		{object}	handle.jsendSuccess[[]PZNInteraction]			"List of drug-drug interactions"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid PZNs"
+//	@Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"PZN(s) not found"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/interactions/pzns [get]
+//	@Router			/interactions/pzns [get]
 func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 	type Query struct {
 		PZNs         string `form:"pzns" binding:"required" example:"1234567,7654321"`
@@ -201,13 +201,49 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 	handle.Success(c, result)
 }
 
+//	@Summary		Query drug-drug interactions between compounds in batch
+//	@Description	This is the batch version of the `GET /interactions/compounds` endpoint.
+//
+//	@Description	The result will be an array of drug-drug interactions between the provided compounds.
+//	@Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+//	@Description	and direction of the interaction.
+//
+//	@Description	The direction of the interaction describes the relationship between the victims (left)
+//	@Description	and the perpetrators (right).
+//
+//	@Description	The left side and right side of the interaction can include multiple compounds if the same interaction
+//	@Description	is observed between multiple compounds. This may happen if the same compound is marketed under different names.
+//
+//	@Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+//	@Description	If the `doses` query parameter is set to `true`, the relevant doses/formulations of the compounds involved will be included.
+//
+//	@Description	Ids for the queries must be unique.
+//	@Description	Queries will be processed in parallel.
+//	@Description	**Some/all queries may fail, resulting in error code `207`.**
+//	@Description	The response will contain results for all queries, even if some failed.
+//	@Description	**The user must check the status of each query in the batch.**
+//
+//	@Tags			Drug-Drug Interactions
+//
+//	@Produce		json
+//	@Param			request	body		[]CompoundInteractionPostQuery					true	"Batch query for drug-drug interactions"
+//	@Success		200		{object}	handle.jsendSuccess[[]CompoundBatchResult]		"Results with no errors"
+//	@Success		207		{object}	handle.jsendSuccess[[]CompoundBatchResult]		"Results with errors"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Too many IDs or duplicate IDs"
+//
+//	@Security		Bearer
+//
+//	@Router			/interactions/compounds [post]
 func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	type Query struct {
-		ID           string   `json:"id" binding:"required"`
-		Compounds    []string `json:"compounds" binding:"required"`
-		FetchDoses   bool     `json:"doses" binding:"omitempty"`
-		DetailedDesc bool     `json:"details" binding:"omitempty"`
-	}
+		ID           string   `json:"id" binding:"required" example:"1"`                          // ID of the query
+		Compounds    []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
+		FetchDoses   bool     `json:"doses" binding:"omitempty" example:"true"`                   // Fetch dose/formulation information
+		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`                 // Detailed interaction descriptions
+	} //	@name	CompoundInteractionPostQuery
 	queries := []Query{}
 
 	if !handle.JSONBind(c, &queries) {
@@ -215,8 +251,8 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	}
 
 	ids := make([]string, len(queries))
-	for id := range queries {
-		ids[id] = queries[id].ID
+	for i := range queries {
+		ids[i] = queries[i].ID
 	}
 
 	n := len(ids)
@@ -231,10 +267,10 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	}
 
 	type BatchResult struct {
-		ID string `json:"id"`
+		ID string `json:"id" example:"1"` // ID of the query
 		apierr.ResStatus
-		Interactions *[]CompoundInteraction `json:"interactions"`
-	}
+		Interactions *[]CompoundInteraction `json:"interactions"` // Drug-drug interactions
+	} //	@name	CompoundBatchResult
 
 	db := ic.DB
 	maxConcurrency := ic.Limits.BatchJobs
@@ -248,12 +284,10 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 
 		go func(idx int, query *Query) {
 			defer wg.Done()
-			defer func() {
-				<-semaphore
-			}()
+			defer func() { <-semaphore }()
 
 			result, err := fetchCompoundInteractions(query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc)
-			results[idx] = BatchResult{q.ID, apierr.ToResponse(c, err), &result}
+			results[idx] = BatchResult{query.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
 	wg.Wait()
@@ -264,41 +298,42 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 			nSuccess++
 		}
 	}
-	c.JSON(apierr.BatchStatusCode(n, nSuccess), results)
+
+	handle.SuccessWithStatus(c, apierr.BatchStatusCode(n, nSuccess), results)
 }
 
-// @Summary		Query drug-drug interactions between compounds
-// @Description	The result will be an array of drug-drug interactions between the provided compounds.
-// @Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
-// @Description	and direction of the interaction.
+//	@Summary		Query drug-drug interactions between compounds
+//	@Description	The result will be an array of drug-drug interactions between the provided compounds.
+//	@Description	Each interaction will contain the plausibility, relevance, frequency, credibility,
+//	@Description	and direction of the interaction.
 //
-// @Description	The direction of the interaction describes the relationship between the victims (left)
-// @Description	and the perpetrators (right).
+//	@Description	The direction of the interaction describes the relationship between the victims (left)
+//	@Description	and the perpetrators (right).
 //
-// @Description	The left size and right side of the interaction can be more than one compounds if the same interaction
-// @Description	is observed between multiple compounds. This can be the case if the same compound is marketed
-// @Description	under different names or derivates are considered.
+//	@Description	The left size and right side of the interaction can be more than one compounds if the same interaction
+//	@Description	is observed between multiple compounds. This can be the case if the same compound is marketed
+//	@Description	under different names or derivates are considered.
 //
-// @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
+//	@Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
 //
-// @Description	If the `doses` query parameter is set to `true`, the interaction will contain the relevant
-// @Description	doses/formulations of the compounds that are involved in the interaction.
+//	@Description	If the `doses` query parameter is set to `true`, the interaction will contain the relevant
+//	@Description	doses/formulations of the compounds that are involved in the interaction.
 //
-// @Tags			Drug-Drug Interactions
-// @Produce		json
-// @Param			pzns	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
-// @Param			doses	query		boolean											false	"Fetch doses"								default:"false"
-// @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
-// @Success		200		{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid compound names"
-// @Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"Compound(s) not found"
+//	@Tags			Drug-Drug Interactions
+//	@Produce		json
+//	@Param			pzns	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
+//	@Param			doses	query		boolean											false	"Fetch doses"								default:"false"
+//	@Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+//	@Success		200		{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
+//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid compound names"
+//	@Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"Compound(s) not found"
 //
-// @Security		Bearer
+//	@Security		Bearer
 //
-// @Router			/interactions/compounds [get]
+//	@Router			/interactions/compounds [get]
 func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 	type Query struct {
 		Compounds    string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`

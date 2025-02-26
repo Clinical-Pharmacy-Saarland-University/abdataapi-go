@@ -31,17 +31,17 @@ type PriscusResponse struct {
 	IsPriscus bool   `json:"priscus"`
 }
 
-//	@Summary		List Priscus status for PZNs
-//	@Description	Get Priscus status for one or more PZNs. Each PZN can only have one priscus status.
-//	@Tags			Priscus
-//	@Produce		json
-//	@Param			pzns	query	string			true	"Comma separated string of PZNs"	example:"1234567,7654321"
-//	@Success		200		{array}	PriscusResponse	"List of PZNs with Priscus status"
-//	@Failure		400		"Bad request (e.g. invalid PZNs)"
-//	@Failure		404		"PZN(s) not found"
-//	@Router			/priscus/pzns [get]
+// @Summary		List Priscus status for PZNs
+// @Description	Get Priscus status for one or more PZNs. Each PZN can only have one priscus status.
+// @Tags			Priscus
+// @Produce		json
+// @Param			pzns	query	string			true	"Comma separated string of PZNs"	example:"1234567,7654321"
+// @Success		200		{array}	PriscusResponse	"List of PZNs with Priscus status"
+// @Failure		400		"Bad request (e.g. invalid PZNs)"
+// @Failure		404		"PZN(s) not found"
+// @Router			/priscus/pzns [get]
 //
-//	@Security		Bearer
+// @Security		Bearer
 func (pc *PriscusController) GetPriscusStatus(c *gin.Context) {
 	type Query struct {
 		PZNs string `form:"pzns" binding:"required" example:"1234567,7654321"`
@@ -59,7 +59,7 @@ func (pc *PriscusController) GetPriscusStatus(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	handle.Success(c, result)
 }
 
 func fetchPriscusStatus(pzns []string, db *sqlx.DB) ([]PriscusResponse, error) {

@@ -39,15 +39,15 @@ type QTRequest struct {
 	PZNs []string `json:"pzns"`
 }
 
-//	@Summary		List QT status for PZNs
-//	@Description	Get QT status for one or more PZNs. Each PZN can only have one QT status.
-//	@Tags			QT
-//	@Produce		json
-//	@Param			pzns	query	string		true	"Comma separated string of PZNs"	example:"1234567,7654321"
-//	@Success		200		{array}	QTResponse	"List of PZNs with QT status"
-//	@Failure		400		"Bad request (e.g. invalid PZNs)"
-//	@Failure		404		"PZN(s) not found"
-//	@Router			/qt/pzns [get]
+// @Summary		List QT status for PZNs
+// @Description	Get QT status for one or more PZNs. Each PZN can only have one QT status.
+// @Tags			QT
+// @Produce		json
+// @Param			pzns	query	string		true	"Comma separated string of PZNs"	example:"1234567,7654321"
+// @Success		200		{array}	QTResponse	"List of PZNs with QT status"
+// @Failure		400		"Bad request (e.g. invalid PZNs)"
+// @Failure		404		"PZN(s) not found"
+// @Router			/qt/pzns [get]
 func (qc *QTController) GetQTStatus(c *gin.Context) {
 	type Query struct {
 		PZNs string `form:"pzns" binding:"required" example:"1234567,7654321"`
@@ -65,38 +65,7 @@ func (qc *QTController) GetQTStatus(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
-}
-
-//	@Summary		List QT status for PZNs via POST request
-//	@Description	Retrieve QT status for multiple sets of PZNs.
-//	@Tags			QT
-//	@Accept			json
-//	@Produce		json
-//	@Param			body	body	[]QTRequest	true	"Array of ID and PZN lists"
-//	@Success		200		{array}	QTResponse	"List of PZNs with QT status"
-//	@Failure		400		"Bad request (e.g. invalid PZNs)"
-//	@Failure		404		"PZN(s) not found"
-//	@Router			/qt/pzns [post]
-func (qc *QTController) PostQTStatus(c *gin.Context) {
-	var requests []QTRequest
-	if err := c.BindJSON(&requests); err != nil {
-		handle.Error(c, apierr.New(http.StatusBadRequest, "Invalid request body"))
-		return
-	}
-
-	var allPZNs []string
-	for _, req := range requests {
-		allPZNs = append(allPZNs, req.PZNs...)
-	}
-
-	result, err := fetchQTStatus(allPZNs, qc.DB, qc.CategoryTranslator)
-	if err != nil {
-		handle.Error(c, err)
-		return
-	}
-
-	c.JSON(http.StatusOK, result)
+	handle.Success(c, result)
 }
 
 func fetchQTStatus(pzns []string, db *sqlx.DB, translate func(*int, bool) *string) ([]QTResponse, error) {
