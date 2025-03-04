@@ -63,6 +63,7 @@ type CompoundName struct {
 	PZN       string   `json:"pzn"`
 	Name      string   `json:"name"`
 	Preferred bool     `json:"preferred"`
+	Derivate  bool     `json:"derivate"`
 	Standard  []string `json:"standards"`
 }
 
@@ -80,6 +81,7 @@ func fetchActiveCompounds(pzns []string, db *sqlx.DB) ([]Compound, error) {
 	queryBuilder := squirrel.Select(
 		"PAE_DB.PZN",
 		"Name",
+		"Typ",
 		"Herkunft",
 		"Vorzugsbezeichnung",
 		"FAI_DB.Key_STO").
@@ -90,7 +92,7 @@ func fetchActiveCompounds(pzns []string, db *sqlx.DB) ([]Compound, error) {
 		LeftJoin("SNA_DB ON FAI_DB.Key_STO = SNA_DB.Key_STO").
 		Where(squirrel.Eq{"PAE_DB.PZN": pzns}).
 		Where(squirrel.Eq{"Stofftyp": 1}).
-		Where(squirrel.Or{squirrel.Eq{"Typ": nil}, squirrel.NotEq{"Typ": 100}}).
+		// Where(squirrel.Or{squirrel.Eq{"Typ": nil}, squirrel.NotEq{"Typ": 100}}).
 		Where("FAI_DB.Key_STO NOT IN (SELECT Key_STO_1 FROM VSS_DB WHERE Typ = 8)").
 		OrderBy("PAE_DB.PZN, FAI_DB.Key_STO")
 
@@ -100,6 +102,7 @@ func fetchActiveCompounds(pzns []string, db *sqlx.DB) ([]Compound, error) {
 		PZN       string  `db:"PZN"`
 		Name      string  `db:"Name"`
 		Preferred bool    `db:"Vorzugsbezeichnung"`
+		Derivate  *string `db:"Typ"`
 		Standard  *string `db:"Herkunft"`
 		KeySTO    uint64  `db:"Key_STO"`
 	}
@@ -122,10 +125,16 @@ func fetchActiveCompounds(pzns []string, db *sqlx.DB) ([]Compound, error) {
 			std = strings.Split(*dbResult.Standard, ";")
 		}
 
+		der := false
+		if dbResult.Derivate != nil {
+			der = *dbResult.Derivate == "100"
+		}
+
 		cn := CompoundName{
 			PZN:       dbResult.PZN,
 			Name:      dbResult.Name,
 			Preferred: dbResult.Preferred,
+			Derivate:  der,
 			Standard:  std,
 		}
 
@@ -183,9 +192,10 @@ func (pc *PZNController) GetProductInfo(c *gin.Context) {
 
 // ProductInfo represents information about a product
 type ProductInfo struct {
-	PZN      string `json:"pzn"`
-	IsComb   bool   `json:"is_combination"`
-	Category string `json:"category"`
+	PZN         string `json:"pzn"`
+	IsComb      bool   `json:"is_combination"`
+	Category    string `json:"category"`
+	ProductName string `json:"product_name"`
 }
 
 // ProductInfos represents a list of product info for multiple PZNs
@@ -203,7 +213,8 @@ func fetchProductInfo(pzns []string, db *sqlx.DB, translate func(*int, bool) *st
 	queryBuilder := squirrel.Select(
 		"PAE_DB.PZN",
 		"FAM_DB.Produktgruppe",
-		"FAM_DB.Monopraeparat").
+		"FAM_DB.Monopraeparat",
+		"FAM_DB.Produktname").
 		From("PAE_DB").
 		Distinct().
 		RightJoin("FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM").
@@ -216,6 +227,7 @@ func fetchProductInfo(pzns []string, db *sqlx.DB, translate func(*int, bool) *st
 		PZN      string `db:"PZN"`
 		Category uint64 `db:"Produktgruppe"`
 		Monop    uint64 `db:"Monopraeparat"`
+		PName    string `db:"Produktname"`
 	}
 
 	err := db.Select(&dbResults, query, args...)
@@ -234,9 +246,10 @@ func fetchProductInfo(pzns []string, db *sqlx.DB, translate func(*int, bool) *st
 		categoryName := translate(&categoryInt, false)
 
 		productInfos = append(productInfos, ProductInfo{
-			PZN:      dbResult.PZN,
-			IsComb:   dbResult.Monop == 0,
-			Category: *categoryName, // Use translated category name
+			PZN:         dbResult.PZN,
+			IsComb:      dbResult.Monop == 0,
+			Category:    *categoryName, // Use translated category name
+			ProductName: dbResult.PName,
 		})
 	}
 

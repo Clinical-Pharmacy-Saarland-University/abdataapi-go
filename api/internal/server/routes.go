@@ -4,6 +4,7 @@ import (
 	docs "observeddb-go-api/docs"
 	"observeddb-go-api/internal/controller/admincontroller"
 	"observeddb-go-api/internal/controller/adrcontroller"
+	"observeddb-go-api/internal/controller/compoundcontroller"
 	"observeddb-go-api/internal/controller/formulationcontroller"
 	"observeddb-go-api/internal/controller/interactioncontroller"
 	"observeddb-go-api/internal/controller/priscuscontroller"
@@ -164,5 +165,15 @@ func RegisterQTRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle)
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
 		route.GET("/pzns", c.GetQTStatus)
+	}
+}
+
+func RegisterCompoundRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle) {
+	c := compoundcontroller.NewCompoundController(resourceHandle)
+
+	route := r.Group("/compounds")
+	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
+	{
+		route.GET("/names", c.GetSelectCompounds)
 	}
 }
