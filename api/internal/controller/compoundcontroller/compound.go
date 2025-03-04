@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"observeddb-go-api/cfg"
 	"observeddb-go-api/internal/handle"
+	"regexp"
 	"strings"
 
-	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 )
@@ -62,95 +62,73 @@ func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
 	db := cc.DB
 	formattedResults := []map[string]interface{}{}
 
-	// Query each name separately
+	// Construct the MATCH query input
+	matchQueryInput := "\"" + strings.Join(names, "\" \"") + "\""
+
+	// Query to fetch matching compounds using FULLTEXT search from the input column
+	compoundsQuery := `
+		SELECT a.Name, a.Herkunft, a.Vorzugsbezeichnung, a.Key_STO, b.Name AS Input
+		FROM SNA_DB a
+		JOIN SNA_DB b ON a.Key_STO = b.Key_STO
+		WHERE MATCH(b.Name) AGAINST (? IN BOOLEAN MODE)
+	`
+
+	var dbResults []struct {
+		Name      string  `db:"Name"`
+		Standard  *string `db:"Herkunft"`
+		Preferred int     `db:"Vorzugsbezeichnung"`
+		KeySTO    uint64  `db:"Key_STO"`
+		Input     string  `db:"Input"`
+	}
+
+	err := db.Select(&dbResults, compoundsQuery, matchQueryInput)
+	if err != nil {
+		handle.Error(c, fmt.Errorf("database query for compounds failed: %w", err))
+		return
+	}
+
+	// Organize results by input name using regex matching instead of exact input comparison
+	matchesByInput := make(map[string]map[uint64][]CompoundResponse)
 	for _, name := range names {
-		// Query to fetch Key_STO values for the given name
-		keyStoQuery, keyStoArgs, _ := squirrel.Select("DISTINCT Name", "Key_STO").
-			From("SNA_DB").
-			Where(squirrel.Expr("Name LIKE ?", "%"+name+"%")).
-			ToSql()
+		matchesByInput[name] = make(map[uint64][]CompoundResponse)
+	}
 
-		var keyStoResults []struct {
-			Name   string `db:"Name"`
-			KeySTO uint64 `db:"Key_STO"`
+	for _, row := range dbResults {
+		std := []string{}
+		if row.Standard != nil {
+			std = strings.Split(*row.Standard, ";")
 		}
 
-		err := db.Select(&keyStoResults, keyStoQuery, keyStoArgs...)
-		if err != nil {
-			handle.Error(c, fmt.Errorf("database query for Key_STO failed: %w", err))
-			return
+		compoundEntry := CompoundResponse{
+			Name:      row.Name,
+			Standard:  std,
+			Preferred: row.Preferred == 1,
 		}
 
-		// If no matches found, return an empty array for this input
-		if len(keyStoResults) == 0 {
-			formattedResults = append(formattedResults, map[string]interface{}{
-				"input":   name,
-				"matches": []interface{}{},
-			})
-			continue
-		}
-
-		// Fetch compounds using Key_STO values
-		var allKeySTOs []uint64
-		for _, row := range keyStoResults {
-			allKeySTOs = append(allKeySTOs, row.KeySTO)
-		}
-
-		var dbResults []struct {
-			Name      string  `db:"Name"`
-			Standard  *string `db:"Herkunft"`
-			Preferred int     `db:"Vorzugsbezeichnung"`
-			KeySTO    uint64  `db:"Key_STO"`
-		}
-
-		compoundsQuery, compoundsArgs, _ := squirrel.Select("Name", "Herkunft", "Vorzugsbezeichnung", "Key_STO").
-			From("SNA_DB").
-			Where(squirrel.Eq{"Key_STO": allKeySTOs}).
-			ToSql()
-
-		err = db.Select(&dbResults, compoundsQuery, compoundsArgs...)
-		if err != nil {
-			handle.Error(c, fmt.Errorf("database query for compounds failed: %w", err))
-			return
-		}
-
-		// Organize results by Key_STO
-		matches := [][]CompoundResponse{}
-		seenKeySTOs := make(map[uint64]bool)
-
-		for _, keyRow := range keyStoResults {
-			if seenKeySTOs[keyRow.KeySTO] {
-				continue // Avoid duplicates
-			}
-			seenKeySTOs[keyRow.KeySTO] = true
-
-			matchesForKeySTO := []CompoundResponse{}
-			for _, row := range dbResults {
-				if keyRow.KeySTO == row.KeySTO {
-					std := []string{}
-					if row.Standard != nil {
-						std = strings.Split(*row.Standard, ";")
-					}
-
-					compoundEntry := CompoundResponse{
-						Name:      row.Name,
-						Standard:  std,
-						Preferred: row.Preferred == 1,
-					}
-
-					matchesForKeySTO = append(matchesForKeySTO, compoundEntry)
+		// Use regex to match input names against the returned Input column
+		for _, name := range names {
+			matched, _ := regexp.MatchString("(?i)"+regexp.QuoteMeta(name), row.Input)
+			if matched {
+				if _, exists := matchesByInput[name]; !exists {
+					matchesByInput[name] = make(map[uint64][]CompoundResponse)
 				}
-			}
-
-			if len(matchesForKeySTO) > 0 {
-				matches = append(matches, matchesForKeySTO)
+				if _, exists := matchesByInput[name][row.KeySTO]; !exists {
+					matchesByInput[name][row.KeySTO] = []CompoundResponse{}
+				}
+				matchesByInput[name][row.KeySTO] = append(matchesByInput[name][row.KeySTO], compoundEntry)
 			}
 		}
+	}
 
-		// Store results
+	// Format final results with nested match arrays
+	for _, name := range names {
+		groupedMatches := [][]CompoundResponse{}
+		for _, compounds := range matchesByInput[name] {
+			groupedMatches = append(groupedMatches, compounds)
+		}
 		formattedResults = append(formattedResults, map[string]interface{}{
 			"input":   name,
-			"matches": matches, // Nested array of matches, NO duplicates
+			"matches": groupedMatches,
 		})
 	}
 
