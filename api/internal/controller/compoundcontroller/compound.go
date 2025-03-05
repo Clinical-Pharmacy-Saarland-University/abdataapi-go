@@ -88,9 +88,9 @@ func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
 	}
 
 	// Organize results by input name using regex matching instead of exact input comparison
-	matchesByInput := make(map[string]map[uint64][]CompoundResponse)
+	matchesByInput := make(map[string]map[uint64]map[string]CompoundResponse)
 	for _, name := range names {
-		matchesByInput[name] = make(map[uint64][]CompoundResponse)
+		matchesByInput[name] = make(map[uint64]map[string]CompoundResponse)
 	}
 
 	for _, row := range dbResults {
@@ -110,12 +110,13 @@ func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
 			matched, _ := regexp.MatchString("(?i)"+regexp.QuoteMeta(name), row.Input)
 			if matched {
 				if _, exists := matchesByInput[name]; !exists {
-					matchesByInput[name] = make(map[uint64][]CompoundResponse)
+					matchesByInput[name] = make(map[uint64]map[string]CompoundResponse)
 				}
 				if _, exists := matchesByInput[name][row.KeySTO]; !exists {
-					matchesByInput[name][row.KeySTO] = []CompoundResponse{}
+					matchesByInput[name][row.KeySTO] = make(map[string]CompoundResponse)
 				}
-				matchesByInput[name][row.KeySTO] = append(matchesByInput[name][row.KeySTO], compoundEntry)
+				// Store only unique compound names within each Key_STO group
+				matchesByInput[name][row.KeySTO][row.Name] = compoundEntry
 			}
 		}
 	}
@@ -123,7 +124,11 @@ func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
 	// Format final results with nested match arrays
 	for _, name := range names {
 		groupedMatches := [][]CompoundResponse{}
-		for _, compounds := range matchesByInput[name] {
+		for _, compoundsMap := range matchesByInput[name] {
+			compounds := []CompoundResponse{}
+			for _, compound := range compoundsMap {
+				compounds = append(compounds, compound)
+			}
 			groupedMatches = append(groupedMatches, compounds)
 		}
 		formattedResults = append(formattedResults, map[string]interface{}{
