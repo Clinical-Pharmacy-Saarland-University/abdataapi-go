@@ -242,6 +242,20 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	handle.Success(c, gin.H{"message": "User created"})
 }
 
+// @Summary		Get all users
+// @Description	__Admin role required__
+// @Description	List all users for the API.
+// @Tags			Admin
+// @Produce		json
+// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
+// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
+// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
+// @Failure		500		{object}	handle.jSendError								"Internal server error"
+//
+// @Security		Bearer
+//
+// @Router			/admin/users [get]
 func (ac *AdminController) GetUsers(c *gin.Context) {
 	var query struct {
 		Role   string `form:"role" binding:"omitempty,oneof=admin user approver"`
