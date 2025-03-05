@@ -66,7 +66,7 @@ func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, res)
+	handle.Success(c, res)
 }
 
 type PznADR struct {

@@ -31,23 +31,23 @@ func NewAdminController(resourceHandle *handle.ResourceHandle) *AdminController 
 	}
 }
 
-//	@Summary		Create a new service user
-//	@Description	__Admin role required__
-//	@Description	Create a new service user for the API.
-//	@Description	You can create users with the following roles: `admin`, `user`, `approver`.
-//	@Tags			Admin
-//	@Produce		json
-//	@Param			request	body		CreateServiceUserQuery							true	"Request body"
-//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
-//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
-//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
-//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+// @Summary		Create a new service user
+// @Description	__Admin role required__
+// @Description	Create a new service user for the API.
+// @Description	You can create users with the following roles: `admin`, `user`, `approver`.
+// @Tags			Admin
+// @Produce		json
+// @Param			request	body		CreateServiceUserQuery							true	"Request body"
+// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
+// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
+// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
+// @Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-//	@Security		Bearer
+// @Security		Bearer
 //
-//	@Router			/admin/users/service [post]
+// @Router			/admin/users/service [post]
 func (ac *AdminController) CreateServiceUser(c *gin.Context) {
 	type Query struct {
 		Email     string `json:"email" binding:"required,email,min=2,max=255" example:"joe@gmail.com"`
@@ -128,31 +128,26 @@ func (ac *AdminController) CreateServiceUser(c *gin.Context) {
 		return
 	}
 
-	if gin.IsDebugging() {
-		c.JSON(http.StatusCreated, gin.H{"message": "Service user created"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Service user created"})
+	handle.Success(c, gin.H{"message": "Service user created"})
 }
 
-//	@Summary		Create a new user
-//	@Description	__Admin role required__
-//	@Description	Create a new user for the API. Ths user will receive an email with a token to set their password.
-//	@Description	You can create users with the following roles: `admin`, `user`, `approver`.
-//	@Tags			Admin
-//	@Produce		json
-//	@Param			request	body		CreateUserQuery									true	"Request body"
-//	@Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
-//	@Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
-//	@Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-//	@Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-//	@Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
-//	@Failure		500		{object}	handle.jSendError								"Internal server error"
+// @Summary		Create a new user
+// @Description	__Admin role required__
+// @Description	Create a new user for the API. Ths user will receive an email with a token to set their password.
+// @Description	You can create users with the following roles: `admin`, `user`, `approver`.
+// @Tags			Admin
+// @Produce		json
+// @Param			request	body		CreateUserQuery									true	"Request body"
+// @Success		200		{object}	handle.jsendSuccess[map[string]string]			"User created"
+// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Bad request"
+// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		403		{object}	handle.jsendFailure[handle.errorResponse]		"Non-admin user"
+// @Failure		500		{object}	handle.jSendError								"Internal server error"
 //
-//	@Security		Bearer
+// @Security		Bearer
 //
-//	@Router			/admin/users [post]
+// @Router			/admin/users [post]
 func (ac *AdminController) CreateUser(c *gin.Context) {
 	type Query struct {
 		Email     string `json:"email" binding:"required,email,min=2,max=255" example:"joe@gmail.com"`
@@ -244,7 +239,7 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User created"})
+	handle.Success(c, gin.H{"message": "User created"})
 }
 
 func (ac *AdminController) GetUsers(c *gin.Context) {
@@ -277,7 +272,7 @@ func (ac *AdminController) GetUsers(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, users)
+	handle.Success(c, users)
 }
 
 func (ac *AdminController) GetUserByEmail(c *gin.Context) {
@@ -292,7 +287,7 @@ func (ac *AdminController) GetUserByEmail(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	handle.Success(c, user)
 }
 
 func (ac *AdminController) DeleteUserByEmail(c *gin.Context) {
@@ -315,7 +310,7 @@ func (ac *AdminController) DeleteUserByEmail(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
+	handle.Success(c, gin.H{"message": "User deleted"})
 }
 
 func (ac *AdminController) ChangeUserProfile(c *gin.Context) {
@@ -370,6 +365,5 @@ func (ac *AdminController) ChangeUserProfile(c *gin.Context) {
 		return
 	}
 
-	handle.Success(c, gin.H{"message": "User profile updated"})
 	handle.Success(c, gin.H{"message": "User profile updated"})
 }
