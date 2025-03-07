@@ -232,10 +232,11 @@ func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
 	// Query `guideline_table` for guidelines related to the extracted compound names
 	queryBuilder := squirrel.Select(
 		"drug",
+		"guideline_id",
+		"related_gene_id",
 		"drug_id",
 		"drug_type",
 		"guideline_type",
-		"guideline_id",
 		"guideline_name",
 		"guideline_issuer",
 		"alternate_drug_available",
@@ -247,7 +248,6 @@ func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
 		"pediatric",
 		"related_gene_type",
 		"related_gene_symbol",
-		"related_gene_id",
 		"related_gene_name",
 	).
 		From("guideline_table").
@@ -262,32 +262,43 @@ func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
 		return
 	}
 
-	// Organize guidelines by drug name while ensuring uniqueness
-	guidelinesByDrug := make(map[string]map[string]Guideline) // drug -> guidelineID -> Guideline struct
+	// Organize guidelines by drug name while ensuring **strict uniqueness** using a `set-like` structure
+	guidelinesByDrug := make(map[string]map[string]Guideline) // drug (from DB) -> uniqueKey -> Guideline struct
+
 	for _, guideline := range dbResults {
-		drugKey := strings.ToLower(guideline.Drug) // Normalize drug name to lowercase
-		if _, exists := guidelinesByDrug[drugKey]; !exists {
-			guidelinesByDrug[drugKey] = make(map[string]Guideline)
+		dbDrugName := strings.ToLower(guideline.Drug)                                                    // Use the drug name from the database
+		uniqueKey := fmt.Sprintf("%s|%s|%s", dbDrugName, guideline.GuidelineID, guideline.RelatedGeneID) // Unique composite key
+
+		if _, exists := guidelinesByDrug[dbDrugName]; !exists {
+			guidelinesByDrug[dbDrugName] = make(map[string]Guideline)
 		}
-		guidelinesByDrug[drugKey][guideline.GuidelineID] = guideline // Ensures uniqueness by ID
+
+		// **Ensure uniqueness by key** (if a duplicate exists, it won't be added)
+		guidelinesByDrug[dbDrugName][uniqueKey] = guideline
 	}
 
-	// Replace `matches` with unique `guidelines` in the `formattedResults`
+	// Replace `matches` with **unique** `guidelines` in `formattedResults`
 	for i := range formattedResults {
 		uniqueGuidelines := make([]Guideline, 0)
+		seenKeys := make(map[string]struct{}) // Track already added guidelines
+
 		if matches, ok := formattedResults[i]["matches"].([][]CompoundResponse); ok {
 			for _, group := range matches {
 				for _, compound := range group {
-					drugKey := strings.ToLower(compound.Name)
-					if guidelines, exists := guidelinesByDrug[drugKey]; exists {
-						for _, guideline := range guidelines {
-							uniqueGuidelines = append(uniqueGuidelines, guideline)
+					dbDrugName := strings.ToLower(compound.Name) // Use DB drug name
+					if guidelines, exists := guidelinesByDrug[dbDrugName]; exists {
+						for uniqueKey, guideline := range guidelines {
+							// Ensure **no duplicates in final output**
+							if _, seen := seenKeys[uniqueKey]; !seen {
+								seenKeys[uniqueKey] = struct{}{} // Mark as seen
+								uniqueGuidelines = append(uniqueGuidelines, guideline)
+							}
 						}
 					}
 				}
 			}
 		}
-		// Replace `matches` with unique `guidelines`
+		// Replace `matches` with **deduplicated** `guidelines`
 		formattedResults[i]["guidelines"] = uniqueGuidelines
 		delete(formattedResults[i], "matches")
 	}
