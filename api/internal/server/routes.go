@@ -175,5 +175,6 @@ func RegisterCompoundRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceH
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
 		route.GET("/names", c.GetSelectCompounds)
+		route.GET("/guidelines", c.GetCompoundGuidelines)
 	}
 }
