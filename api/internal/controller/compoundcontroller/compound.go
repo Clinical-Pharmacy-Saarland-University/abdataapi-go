@@ -95,21 +95,19 @@ func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
 func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string, db *sqlx.DB) []map[string]interface{} {
 	formattedResults := []map[string]interface{}{}
 
-	// Construct the MATCH query input
-	matchQueryInput := "\"" + strings.Join(names, "\" \"") + "\""
+	// Construct the SQL query for exact matches
+	queryBuilder := squirrel.Select(
+		"DISTINCT a.Name",
+		"a.Herkunft",
+		"a.Vorzugsbezeichnung",
+		"a.Key_STO",
+		"b.Name AS Input").
+		From("SNA_DB a").
+		Join("SNA_DB b ON a.Key_STO = b.Key_STO").
+		Where(squirrel.Eq{"b.Name": names}) // Exact match (case-insensitive due to collation)
 
-	// Query to fetch matching compounds using FULLTEXT search
-	compoundsQuery := `
-		SELECT DISTINCT
-			a.Name, 
-			a.Herkunft, 
-			a.Vorzugsbezeichnung, 
-			a.Key_STO, 
-			b.Name AS Input
-		FROM SNA_DB a
-		JOIN SNA_DB b ON a.Key_STO = b.Key_STO
-		WHERE MATCH(b.Name) AGAINST (? IN BOOLEAN MODE)
-	`
+	query, args, _ := queryBuilder.ToSql()
+	fmt.Println(query, args)
 
 	var dbResults []struct {
 		Name      string  `db:"Name"`
@@ -119,7 +117,7 @@ func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string, db 
 		Input     string  `db:"Input"`
 	}
 
-	err := db.Select(&dbResults, compoundsQuery, matchQueryInput)
+	err := cc.DB.Select(&dbResults, query, args...)
 	if err != nil {
 		handle.Error(c, fmt.Errorf("database query for compounds failed: %w", err))
 		return nil
