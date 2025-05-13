@@ -196,6 +196,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/compounds/names": {
+            "get": {
+                "description": "Retrieves compounds by name and includes all related compounds sharing the same identifier.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "compounds"
+                ],
+                "summary": "Get compounds by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated compound names (e.g., Metoprolol,Aspirin)",
+                        "name": "names",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format or too many names provided"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
         "/formulations": {
             "get": {
                 "security": [
@@ -290,6 +331,73 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Compound(s) not found",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Bad query format",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ValidationResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "This is the batch version of the ` + "`" + `GET /interactions/compounds` + "`" + ` endpoint.\nThe result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left side and right side of the interaction can include multiple compounds if the same interaction\nis observed between multiple compounds. This may happen if the same compound is marketed under different names.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIf the ` + "`" + `doses` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the relevant doses/formulations of the compounds involved will be included.\nIds for the queries must be unique.\nQueries will be processed in parallel.\n**Some/all queries may fail, resulting in error code ` + "`" + `207` + "`" + `.**\nThe response will contain results for all queries, even if some failed.\n**The user must check the status of each query in the batch.**",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Drug-Drug Interactions"
+                ],
+                "summary": "Query drug-drug interactions between compounds in batch",
+                "parameters": [
+                    {
+                        "description": "Batch query for drug-drug interactions",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/CompoundInteractionPostQuery"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Results with no errors",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_CompoundBatchResult"
+                        }
+                    },
+                    "207": {
+                        "description": "Results with errors",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-array_CompoundBatchResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Too many IDs or duplicate IDs",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/JSendFailure-ErrorResponse"
                         }
@@ -592,50 +700,6 @@ const docTemplate = `{
                         "name": "pzns",
                         "in": "query",
                         "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of PZNs with QT status",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/qtcontroller.QTResponse"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request (e.g. invalid PZNs)"
-                    },
-                    "404": {
-                        "description": "PZN(s) not found"
-                    }
-                }
-            },
-            "post": {
-                "description": "Retrieve QT status for multiple sets of PZNs.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "QT"
-                ],
-                "summary": "List QT status for PZNs via POST request",
-                "parameters": [
-                    {
-                        "description": "Array of ID and PZN lists",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/qtcontroller.QTRequest"
-                            }
-                        }
                     }
                 ],
                 "responses": {
@@ -1323,6 +1387,33 @@ const docTemplate = `{
                 }
             }
         },
+        "CompoundBatchResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "description": "ID of the query",
+                    "type": "string",
+                    "example": "1"
+                },
+                "interactions": {
+                    "description": "Drug-drug interactions",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundInteraction"
+                    }
+                },
+                "message": {
+                    "description": "Status message (e.g. error message)",
+                    "type": "string",
+                    "example": "Success"
+                },
+                "status": {
+                    "description": "HTTP status code of the query",
+                    "type": "integer",
+                    "example": 200
+                }
+            }
+        },
         "CompoundDose": {
             "type": "object",
             "properties": {
@@ -1409,6 +1500,41 @@ const docTemplate = `{
                     "description": "Relevance of the interaction",
                     "type": "string",
                     "example": "minor"
+                }
+            }
+        },
+        "CompoundInteractionPostQuery": {
+            "type": "object",
+            "required": [
+                "compounds",
+                "id"
+            ],
+            "properties": {
+                "compounds": {
+                    "description": "Array of compounds",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "Aspirin",
+                        "Paracetamol"
+                    ]
+                },
+                "details": {
+                    "description": "Detailed interaction descriptions",
+                    "type": "boolean",
+                    "example": true
+                },
+                "doses": {
+                    "description": "Fetch dose/formulation information",
+                    "type": "boolean",
+                    "example": true
+                },
+                "id": {
+                    "description": "ID of the query",
+                    "type": "string",
+                    "example": "1"
                 }
             }
         },
@@ -1709,6 +1835,23 @@ const docTemplate = `{
                             "$ref": "#/definitions/UserProfile"
                         }
                     ]
+                },
+                "status": {
+                    "description": "Status 'success'",
+                    "type": "string",
+                    "example": "success"
+                }
+            }
+        },
+        "JSendSuccess-array_CompoundBatchResult": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "description": "Data with success message(s)",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/CompoundBatchResult"
+                    }
                 },
                 "status": {
                     "description": "Status 'success'",
@@ -2208,6 +2351,9 @@ const docTemplate = `{
         "pzncontroller.CompoundName": {
             "type": "object",
             "properties": {
+                "derivate": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -2234,6 +2380,9 @@ const docTemplate = `{
                 "is_combination": {
                     "type": "boolean"
                 },
+                "product_name": {
+                    "type": "string"
+                },
                 "pzn": {
                     "type": "string"
                 }
@@ -2246,20 +2395,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/pzncontroller.ProductInfo"
-                    }
-                }
-            }
-        },
-        "qtcontroller.QTRequest": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "pzns": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
                     }
                 }
             }
