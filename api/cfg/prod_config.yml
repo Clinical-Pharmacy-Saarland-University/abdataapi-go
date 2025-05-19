@@ -1,8 +1,8 @@
 meta:
-  api_name: "ABDA API"
-  api_description: "A REST-like API to access the ABDA Database."
-  api_version: "0.1.0"
-  api_url: "medinfo.precisiondosing.de"
+  api_name: "MedInfo API - Safepolymed"
+  api_description: "A REST-like API to access the MedInfo Service for the Safepolymed study."
+  api_version: "1.0.0"
+  api_url: "medinfo-spm.precisiondosing.de"
   group: "/api/v1"
 server:
   read_write_timeout: "120s"
@@ -14,14 +14,14 @@ log:
   max_size: 50
   max_backups: 3
 database:
-  db_name: "abda"
+  db_name: "medinfo_spm"
   max_open_conns: 50
   max_idle_conns: 10
   max_conn_lifetime: "1h"
 auth_token:
-  access_expiration_time: "15m"
+  access_expiration_time: "12h"
   refresh_expiration_time: "24h"
-  issuer: "https://medinfo.precisiondosing.de"
+  issuer: "https://medinfo-spm.precisiondosing.de"
 reset_token:
   expiration_time: "48h"
   retry_interval: "24h"
