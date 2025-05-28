@@ -2,12 +2,14 @@ package pzncontroller
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"observeddb-go-api/cfg"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/utils/apierr"
 	"observeddb-go-api/internal/utils/format"
 	"observeddb-go-api/internal/utils/validate"
+	"slices"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
@@ -27,6 +29,184 @@ func NewPZNController(resourceHandle *handle.ResourceHandle) *PZNController {
 		Limits:             resourceHandle.Limits,
 		CategoryTranslator: format.NewProductTranslator(),
 	}
+}
+
+func (pc *PZNController) GetProductList(c *gin.Context) {
+
+	const pageSize = 1000
+
+	var params struct {
+		Page int `form:"page"`
+	}
+
+	if !handle.QueryBind(c, &params) {
+		return
+	}
+
+	// Count the total number of distinct PZNs
+	type CountResult struct {
+		Count int `db:"count"`
+	}
+
+	var cResult CountResult
+	err := pc.DB.Get(&cResult, `
+		SELECT COUNT(DISTINCT PZN) as count 
+		FROM PAE_DB 
+		LEFT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM 
+		WHERE PZN IS NOT NULL 
+		AND KEY_ATC IS NOT NULL 
+		AND FAM_DB.Veterinaerpraeparat = 0
+	`)
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+
+	pages := (cResult.Count + pageSize - 1) / pageSize
+
+	if params.Page <= 0 {
+		handle.BadRequestError(c, "Page must be a positive integer")
+		return
+	}
+
+	if params.Page > pages {
+		handle.NotFoundError(c, fmt.Sprintf("Page %d not found, total pages: %d", params.Page, pages))
+		return
+	}
+
+	queryPzns := fmt.Sprintf(`
+		SELECT DISTINCT PZN
+		FROM PAE_DB 
+		LEFT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM 
+		WHERE PZN IS NOT NULL 
+		AND KEY_ATC IS NOT NULL 
+		AND FAM_DB.Veterinaerpraeparat = 0
+		ORDER BY PZN
+		LIMIT %d OFFSET %d`, pageSize, (params.Page-1)*pageSize)
+
+	var pznsRes []string
+	err = pc.DB.Select(&pznsRes, queryPzns)
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+	if len(pznsRes) == 0 {
+		handle.NotFoundError(c, fmt.Sprintf("No PZNs found for page %d", params.Page))
+		return
+	}
+
+	queryBuilder := squirrel.Select(
+		"DISTINCT FAM_DB.Produktname",
+		"FAM_DB.Key_ATC",
+		"PAE_DB.PZN",
+		"SNA_DB.Key_STO",
+		"VSS_DB.Key_STO_1",
+		"VSS_DB.Key_STO_2",
+		"VSS_DB.Typ",
+		"SNA_DB.Name",
+	).
+		From("FAM_DB").
+		LeftJoin("PAE_DB ON FAM_DB.Key_FAM = PAE_DB.Key_FAM").
+		LeftJoin("FAI_DB ON FAI_DB.Key_FAM = FAM_DB.Key_FAM").
+		LeftJoin("VSS_DB ON VSS_DB.Key_STO_2 = FAI_DB.Key_STO").
+		LeftJoin("SNA_DB ON FAI_DB.Key_STO = SNA_DB.Key_STO").
+		Where("FAM_DB.Key_ATC IS NOT NULL").
+		Where("FAM_DB.Veterinaerpraeparat = 0").
+		Where("FAI_DB.Stofftyp = 1").
+		Where("PAE_DB.PZN IS NOT NULL").
+		Where(squirrel.Or{
+			squirrel.Expr("VSS_DB.Typ IS NULL"),
+			squirrel.Expr("VSS_DB.Typ <> 100"),
+		}).
+		Where("SNA_DB.Vorzugsbezeichnung = 1").
+		Where(squirrel.Expr(`
+			SNA_DB.Key_STO NOT IN (
+				SELECT Key_STO_1 FROM VSS_DB WHERE Typ = 8
+			)`)).
+		Where(squirrel.Eq{"PAE_DB.PZN": pznsRes})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+
+	type dbResult struct {
+		ProductName string  `db:"Produktname" json:"product"`
+		ATC         string  `db:"Key_ATC" json:"atc"`
+		PZN         string  `db:"PZN" json:"pzn"`
+		KeySTO      string  `db:"Key_STO" json:"key_sto"`
+		KeySTO1     *string `db:"Key_STO_1" json:"key_sto_1"`
+		KeySTO2     *string `db:"Key_STO_2" json:"key_sto_2"`
+		Typ         *int    `db:"Typ" json:"typ"`
+		Name        string  `db:"Name" json:"name"`
+	}
+
+	var dbResults []dbResult
+	err = pc.DB.Select(&dbResults, query, args...)
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+
+	// We have now ordered by PZN but have to eliminate Key_STOs that are also in Key_STO_1
+	type result struct {
+		ProductName     string   `json:"product"`
+		ATC             string   `json:"atc"`
+		PZN             *string  `json:"pzn"`
+		ActiveCompounds []string `json:"active_compounds"`
+	}
+
+	var pznResults []dbResult
+	var results []result
+	for _, res := range dbResults {
+		if len(pznResults) == 0 || pznResults[0].PZN == res.PZN {
+			pznResults = append(pznResults, res)
+			continue
+		}
+
+		if pznResults[0].PZN != res.PZN {
+			r := result{
+				ProductName:     pznResults[0].ProductName,
+				ATC:             pznResults[0].ATC,
+				PZN:             &pznResults[0].PZN,
+				ActiveCompounds: []string{},
+			}
+			activeMap := make(map[string]string)
+			for _, pznResult := range pznResults {
+				ok := true
+				for _, tmp := range pznResults {
+					if tmp.KeySTO1 != nil && pznResult.KeySTO == *tmp.KeySTO1 {
+						ok = false
+						break
+					}
+				}
+				if ok {
+					activeMap[pznResult.KeySTO] = pznResult.Name
+				}
+			}
+			r.ActiveCompounds = slices.Collect(maps.Values(activeMap))
+
+			results = append(results, r)
+			pznResults = []dbResult{res}
+			continue
+		}
+	}
+
+	data := struct {
+		Pages      int `json:"pages"`
+		Page       int `json:"page"`
+		PZNPerPage int `json:"pzns_per_page"`
+		// Data contains the list of products with their active compounds
+		Data []result `json:"products"`
+	}{
+		Pages:      pages,
+		Page:       params.Page,
+		PZNPerPage: pageSize,
+		Data:       results,
+	}
+
+	handle.Success(c, data)
 }
 
 // @Summary		List active compounds for PZNs

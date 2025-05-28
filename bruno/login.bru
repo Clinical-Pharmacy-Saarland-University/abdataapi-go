@@ -1,0 +1,27 @@
+meta {
+  name: login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{url}}/api/v1/user/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "login": "{{login}}",
+    "password": "{{password}}",
+    "user": null
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  const token = body.data.access_token;
+  const refresh_token = body.data.refresh_token;
+  bru.setVar("access_token", token);
+  bru.setVar("refresh_token", refresh_token)
+}

@@ -750,6 +750,38 @@ info:
   contact: {}
 paths:
   /admin/users:
+    get:
+      description: |-
+        __Admin role required__
+        List all users for the API.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User created
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Get all users
+      tags:
+      - Admin
     post:
       description: |-
         __Admin role required__
@@ -877,6 +909,34 @@ paths:
       summary: List ADRs for PZNs
       tags:
       - Adverse Drug Reactions
+  /compounds/guidelines:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves guidelines by drug name and includes all related synonyms
+        for the drug.
+      parameters:
+      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+        in: query
+        name: names
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Invalid request format or too many names provided
+        "500":
+          description: Internal server error
+      summary: Get guidelines by drug name
+      tags:
+      - pharmgkb
   /compounds/names:
     get:
       consumes:

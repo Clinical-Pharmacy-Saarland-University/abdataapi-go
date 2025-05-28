@@ -7,7 +7,7 @@ meta:
 server:
   read_write_timeout: "120s"
   idle_timeout: "30s"
-  address: "127.0.0.1:3308"
+  address: "127.0.0.1:3333"
 log:
   file_name: "./tmp/abda_api.log"
   level: "INFO"
@@ -19,7 +19,7 @@ database:
   max_idle_conns: 10
   max_conn_lifetime: "1h"
 auth_token:
-  access_expiration_time: "15m"
+  access_expiration_time: "15h"
   refresh_expiration_time: "24h"
   issuer: "https://medinfo.precisiondosing.de"
 reset_token:

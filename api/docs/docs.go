@@ -16,6 +16,53 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/admin/users": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "__Admin role required__\nList all users for the API.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get all users",
+                "responses": {
+                    "200": {
+                        "description": "User created",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Non-admin user",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -192,6 +239,47 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "PZN(s) not found"
+                    }
+                }
+            }
+        },
+        "/compounds/guidelines": {
+            "get": {
+                "description": "Retrieves guidelines by drug name and includes all related synonyms for the drug.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pharmgkb"
+                ],
+                "summary": "Get guidelines by drug name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated compound names (e.g., Metoprolol,Aspirin)",
+                        "name": "names",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format or too many names provided"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
