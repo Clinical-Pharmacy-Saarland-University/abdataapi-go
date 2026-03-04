@@ -1,17 +1,17 @@
 meta {
-  name: Compound Interaction
+  name: PZN Interaction
   type: http
-  seq: 4
+  seq: 3
 }
 
 get {
-  url: {{url}}/api/v1/interactions/compounds?compounds=ramipril,ciprofloxacin,chinidin,rifampicin,hydrochlorothiazid
+  url: {{url}}/api/v1/interactions/pzns?pzns=00639943,06995774
   body: none
   auth: inherit
 }
 
 params:query {
-  compounds: ramipril,ciprofloxacin,chinidin,rifampicin,hydrochlorothiazid
+  pzns: 00639943,06995774
 }
 
 tests {
@@ -20,8 +20,7 @@ tests {
     expect(res.getStatus()).to.equal(200);
     expect(body.status).to.equal("success");
     expect(Array.isArray(body.data)).to.equal(true);
-    if (body.data.length > 0) {
-      expect(body.data[0].text).to.equal(undefined);
-    }
+    expect(body.data.length > 0).to.equal(true);
+    expect(body.data[0].text).to.equal(undefined);
   });
 }

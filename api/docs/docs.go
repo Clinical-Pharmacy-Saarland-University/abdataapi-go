@@ -396,6 +396,12 @@ const docTemplate = `{
                         "description": "Fetch detailed interaction descriptions",
                         "name": "details",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch interaction text",
+                        "name": "text",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -532,6 +538,12 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "Fetch detailed interaction descriptions",
                         "name": "details",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch interaction text",
+                        "name": "text",
                         "in": "query"
                     }
                 ],
@@ -1669,6 +1681,14 @@ const docTemplate = `{
                     "description": "Relevance of the interaction",
                     "type": "string",
                     "example": "minor"
+                },
+                "text": {
+                    "description": "Extracted interaction text",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InteractionText"
+                        }
+                    ]
                 }
             }
         },
@@ -1704,6 +1724,11 @@ const docTemplate = `{
                     "description": "ID of the query",
                     "type": "string",
                     "example": "1"
+                },
+                "text": {
+                    "description": "Fetch interaction text",
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },
@@ -1868,6 +1893,23 @@ const docTemplate = `{
                             "$ref": "#/definitions/cfg.MetaConfig"
                         }
                     ]
+                }
+            }
+        },
+        "InteractionText": {
+            "type": "object",
+            "properties": {
+                "data_basis": {
+                    "type": "string"
+                },
+                "literature": {
+                    "type": "string"
+                },
+                "mechanism": {
+                    "type": "string"
+                },
+                "pharmacologic_effect": {
+                    "type": "string"
                 }
             }
         },
@@ -2238,6 +2280,14 @@ const docTemplate = `{
                     "description": "Relevance of the interaction",
                     "type": "string",
                     "example": "minor"
+                },
+                "text": {
+                    "description": "Extracted interaction text",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InteractionText"
+                        }
+                    ]
                 }
             }
         },
@@ -2268,6 +2318,11 @@ const docTemplate = `{
                         "1234567",
                         "7654321"
                     ]
+                },
+                "text": {
+                    "description": "Fetch interaction text",
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },

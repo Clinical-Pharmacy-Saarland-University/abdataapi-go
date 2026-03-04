@@ -106,6 +106,10 @@ definitions:
         description: Relevance of the interaction
         example: minor
         type: string
+      text:
+        allOf:
+        - $ref: '#/definitions/InteractionText'
+        description: Extracted interaction text
     type: object
   CompoundInteractionPostQuery:
     properties:
@@ -129,6 +133,10 @@ definitions:
         description: ID of the query
         example: "1"
         type: string
+      text:
+        description: Fetch interaction text
+        example: true
+        type: boolean
     required:
     - compounds
     - id
@@ -252,6 +260,17 @@ definitions:
         allOf:
         - $ref: '#/definitions/cfg.MetaConfig'
         description: Meta
+    type: object
+  InteractionText:
+    properties:
+      data_basis:
+        type: string
+      literature:
+        type: string
+      mechanism:
+        type: string
+      pharmacologic_effect:
+        type: string
     type: object
   JSendError:
     properties:
@@ -506,6 +525,10 @@ definitions:
         description: Relevance of the interaction
         example: minor
         type: string
+      text:
+        allOf:
+        - $ref: '#/definitions/InteractionText'
+        description: Extracted interaction text
     type: object
   PZNInteractionPostQuery:
     properties:
@@ -525,6 +548,10 @@ definitions:
         items:
           type: string
         type: array
+      text:
+        description: Fetch interaction text
+        example: true
+        type: boolean
     required:
     - id
     - pzns
@@ -1032,6 +1059,10 @@ paths:
         in: query
         name: details
         type: boolean
+      - description: Fetch interaction text
+        in: query
+        name: text
+        type: boolean
       produces:
       - application/json
       responses:
@@ -1142,6 +1173,10 @@ paths:
       - description: Fetch detailed interaction descriptions
         in: query
         name: details
+        type: boolean
+      - description: Fetch interaction text
+        in: query
+        name: text
         type: boolean
       produces:
       - application/json

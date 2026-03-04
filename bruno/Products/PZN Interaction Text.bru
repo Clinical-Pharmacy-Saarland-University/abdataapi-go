@@ -1,0 +1,33 @@
+meta {
+  name: PZN Interaction Text
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{url}}/api/v1/interactions/pzns?pzns=00639943,06995774&text=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  pzns: 00639943,06995774
+  text: true
+}
+
+tests {
+  test("returns success with extracted interaction text when requested", function() {
+    const body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body.status).to.equal("success");
+    expect(Array.isArray(body.data)).to.equal(true);
+    expect(body.data.length > 0).to.equal(true);
+    expect(body.data[0].text).to.not.equal(undefined);
+    expect(
+      body.data[0].text.data_basis ||
+      body.data[0].text.pharmacologic_effect ||
+      body.data[0].text.mechanism ||
+      body.data[0].text.literature
+    ).to.not.equal(undefined);
+  });
+}

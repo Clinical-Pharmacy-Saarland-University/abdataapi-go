@@ -33,6 +33,13 @@ type InteractionController struct {
 	DescriptionStruct      any
 }
 
+type InteractionText struct {
+	DataBasis           *string `json:"data_basis,omitempty"`
+	PharmacologicEffect *string `json:"pharmacologic_effect,omitempty"`
+	Mechanism           *string `json:"mechanism,omitempty"`
+	Literature          *string `json:"literature,omitempty"`
+} // @name InteractionText
+
 func NewInteractionController(resourceHandle *handle.ResourceHandle) *InteractionController {
 	return &InteractionController{
 		DB:                     resourceHandle.SQLX,
@@ -91,6 +98,7 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 		ID           string   `json:"id" binding:"required" example:"1"`                 // ID of the query
 		PZNs         []string `json:"pzns" binding:"required" example:"1234567,7654321"` // Array of PZNs
 		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`        // Detailed interaction descriptions
+		FetchText    bool     `json:"text" binding:"omitempty" example:"true"`           // Fetch interaction text
 	} //	@name	PZNInteractionPostQuery
 	queries := []Query{}
 
@@ -136,7 +144,7 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 				<-semaphore
 			}()
 
-			result, err := fetchPznInteractions(query.PZNs, db, ic, query.DetailedDesc)
+			result, err := fetchPznInteractions(query.PZNs, db, ic, query.DetailedDesc, query.FetchText)
 			results[idx] = BatchResult{q.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
@@ -170,6 +178,7 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 // @Produce		json
 // @Param			pzns	query		string											true	"Comma separated string of PZNs"			example:"1234567,7654321"
 // @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+// @Param			text	query		boolean											false	"Fetch interaction text"					default:"false"
 // @Success		200		{object}	handle.jsendSuccess[[]PZNInteraction]			"List of drug-drug interactions"
 // @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
 // @Failure		500		{object}	handle.jSendError								"Internal server error"
@@ -184,6 +193,7 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 	type Query struct {
 		PZNs         string `form:"pzns" binding:"required" example:"1234567,7654321"`
 		DetailedDesc bool   `form:"details" binding:"omitempty" example:"true"`
+		FetchText    bool   `form:"text" binding:"omitempty" example:"true"`
 	} //	@name	PZNInteractionQuery
 
 	var query Query
@@ -193,7 +203,7 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 
 	pzns := strings.Split(query.PZNs, ",")
 
-	result, err := fetchPznInteractions(pzns, ic.DB, ic, query.DetailedDesc)
+	result, err := fetchPznInteractions(pzns, ic.DB, ic, query.DetailedDesc, query.FetchText)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -244,6 +254,7 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 		Compounds    []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
 		FetchDoses   bool     `json:"doses" binding:"omitempty" example:"true"`                   // Fetch dose/formulation information
 		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`                 // Detailed interaction descriptions
+		FetchText    bool     `json:"text" binding:"omitempty" example:"true"`                    // Fetch interaction text
 	} //	@name	CompoundInteractionPostQuery
 	queries := []Query{}
 
@@ -287,7 +298,7 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
-			result, err := fetchCompoundInteractions(query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc)
+			result, err := fetchCompoundInteractions(query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc, query.FetchText)
 			results[idx] = BatchResult{query.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
@@ -325,6 +336,7 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Param			pzns	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
 // @Param			doses	query		boolean											false	"Fetch doses"								default:"false"
 // @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+// @Param			text	query		boolean											false	"Fetch interaction text"					default:"false"
 // @Success		200		{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
 // @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
 // @Failure		500		{object}	handle.jSendError								"Internal server error"
@@ -340,6 +352,7 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 		Compounds    string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`
 		FetchDose    bool   `form:"doses" binding:"omitempty" example:"true"`
 		DetailedDesc bool   `form:"details" binding:"omitempty" example:"true"`
+		FetchText    bool   `form:"text" binding:"omitempty" example:"true"`
 	} //	@name	CompoundInteractionQuery
 
 	var query Query
@@ -349,7 +362,7 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 
 	compounds := strings.Split(query.Compounds, ",")
 
-	result, err := fetchCompoundInteractions(compounds, ic.DB, ic, query.FetchDose, query.DetailedDesc)
+	result, err := fetchCompoundInteractions(compounds, ic.DB, ic, query.FetchDose, query.DetailedDesc, query.FetchText)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -359,16 +372,29 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 }
 
 type CompoundInteraction struct {
-	Plausibility *string         `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
-	Relevance    *string         `json:"relevance" example:"minor"`                  // Relevance of the interaction
-	Frequency    *string         `json:"frequency" example:"common"`                 // Frequency of the interaction
-	Credibility  *string         `json:"credibility" example:"insufficient"`         // Credibility of the interaction
-	Direction    *string         `json:"direction" example:"undirected interaction"` // Direction of the interaction
-	CompoundsL   []string        `json:"compounds_left" example:"Aspirin"`           // Victim compound(s)
-	CompoundsR   []string        `json:"compounds_right" example:"Paracetamol"`      // Perpetrator compound(s)
-	DosesL       []*CompoundDose `json:"doses_left"`                                 // Doses of the victim compounds
-	DosesR       []*CompoundDose `json:"doses_right"`                                // Doses of the perpetrator compounds
+	Plausibility *string          `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
+	Relevance    *string          `json:"relevance" example:"minor"`                  // Relevance of the interaction
+	Frequency    *string          `json:"frequency" example:"common"`                 // Frequency of the interaction
+	Credibility  *string          `json:"credibility" example:"insufficient"`         // Credibility of the interaction
+	Direction    *string          `json:"direction" example:"undirected interaction"` // Direction of the interaction
+	CompoundsL   []string         `json:"compounds_left" example:"Aspirin"`           // Victim compound(s)
+	CompoundsR   []string         `json:"compounds_right" example:"Paracetamol"`      // Perpetrator compound(s)
+	DosesL       []*CompoundDose  `json:"doses_left"`                                 // Doses of the victim compounds
+	DosesR       []*CompoundDose  `json:"doses_right"`                                // Doses of the perpetrator compounds
+	Text         *InteractionText `json:"text,omitempty"`                             // Extracted interaction text
 } //	@name	CompoundInteraction
+
+type compoundDBInteraction struct {
+	KeyINT       uint64  `db:"Key_INT"`
+	TextRef      *uint64 `db:"Textverweis"`
+	Plausibility *int    `db:"Plausibilitaet"`
+	Relevance    *int    `db:"Relevanz"`
+	Frequency    *int    `db:"Haeufigkeit"`
+	Credibility  *int    `db:"Quellenbewertung"`
+	Direction    *int    `db:"Richtung"`
+	KeyStoL      uint64  `db:"Key_STO_L"`
+	KeyStoR      uint64  `db:"Key_STO_R"`
+}
 
 func uniqueInteractions[T any](interactions []T) []T {
 	seen := make(map[string]struct{})
@@ -395,6 +421,7 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 	ic *InteractionController,
 	fetchDoses bool,
 	detailedDesc bool,
+	fetchText bool,
 ) ([]CompoundInteraction, error) {
 	if err := validate.Compounds(compounds, ic.Limits.InteractionDrugs); err != nil {
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
@@ -417,6 +444,7 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 	keySto := slices.Collect(maps.Keys(stoCompoundMap))
 	queryBuilder := squirrel.Select(
 		"INT_C.Key_INT",
+		"INT_C.Textverweis",
 		"INT_C.Plausibilitaet",
 		"INT_C.Relevanz",
 		"INT_C.Haeufigkeit",
@@ -436,16 +464,7 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 		OrderBy("INT_C.Key_INT")
 
 	query, args, _ := queryBuilder.ToSql()
-	var dbInteractions []struct {
-		KeyINT       uint64 `db:"Key_INT"`
-		Plausibility *int   `db:"Plausibilitaet"`
-		Relevance    *int   `db:"Relevanz"`
-		Frequency    *int   `db:"Haeufigkeit"`
-		Credibility  *int   `db:"Quellenbewertung"`
-		Direction    *int   `db:"Richtung"`
-		KeyStoL      uint64 `db:"Key_STO_L"`
-		KeyStoR      uint64 `db:"Key_STO_R"`
-	}
+	var dbInteractions []compoundDBInteraction
 
 	err = db.Select(&dbInteractions, query, args...)
 	if err != nil {
@@ -462,6 +481,18 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 			Direction:    ic.DirectionTranslator(interaction.Direction, detailedDesc),
 			CompoundsL:   stoCompoundMap[interaction.KeyStoL],
 			CompoundsR:   stoCompoundMap[interaction.KeyStoR],
+		}
+	}
+
+	if fetchText {
+		textByInt, err := fetchInteractionTexts(db, dbInteractions)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching interaction text: %w", err)
+		}
+		for i, interaction := range dbInteractions {
+			if text, ok := textByInt[interaction.KeyINT]; ok {
+				results[i].Text = text
+			}
 		}
 	}
 
@@ -495,13 +526,15 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 }
 
 type PZNInteraction struct {
-	Plausibility *string  `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
-	Relevance    *string  `json:"relevance" example:"minor"`                  // Relevance of the interaction
-	Frequency    *string  `json:"frequency" example:"common"`                 // Frequency of the interaction
-	Credibility  *string  `json:"credibility" example:"insufficient"`         // Credibility of the interaction
-	Direction    *string  `json:"direction" example:"undirected interaction"` // Direction of the interaction
-	PZNL         []string `json:"pzn_left" example:"1234567"`                 // Victim PZN
-	PZNR         []string `json:"pzn_right" example:"7654321"`                // Perpetrator PZN
+	KeyINT       uint64           `json:"-"`
+	Plausibility *string          `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
+	Relevance    *string          `json:"relevance" example:"minor"`                  // Relevance of the interaction
+	Frequency    *string          `json:"frequency" example:"common"`                 // Frequency of the interaction
+	Credibility  *string          `json:"credibility" example:"insufficient"`         // Credibility of the interaction
+	Direction    *string          `json:"direction" example:"undirected interaction"` // Direction of the interaction
+	PZNL         []string         `json:"pzn_left" example:"1234567"`                 // Victim PZN
+	PZNR         []string         `json:"pzn_right" example:"7654321"`                // Perpetrator PZN
+	Text         *InteractionText `json:"text,omitempty"`                             // Extracted interaction text
 } //	@name	PZNInteraction
 
 func fetchPznInteractions(
@@ -509,6 +542,7 @@ func fetchPznInteractions(
 	db *sqlx.DB,
 	ic *InteractionController,
 	detailedDesc bool,
+	fetchText bool,
 ) ([]PZNInteraction, error) {
 	if err := validate.PZNs(pzns, 2, ic.Limits.InteractionDrugs); err != nil {
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
@@ -535,6 +569,8 @@ func fetchPznInteractions(
 		"INT_C.Haeufigkeit",
 		"INT_C.Quellenbewertung",
 		"INT_C.Richtung",
+		"INT_C.Key_INT",
+		"INT_C.Textverweis",
 		"FZI_C1.Key_FAM AS Key_FAM_R",
 		"FZI_C2.Key_FAM AS Key_FAM_L",
 		"SZI_C1.Key_STO AS Key_STO_R",
@@ -559,20 +595,35 @@ func fetchPznInteractions(
 	}
 
 	results := mapCompoundInteracions(dbInteractions, famPznMap, ic, detailedDesc)
+
+	if fetchText {
+		textByInt, err := fetchInteractionTexts(db, dbInteractions)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching interaction text: %w", err)
+		}
+		for i := range results {
+			if text, ok := textByInt[results[i].KeyINT]; ok {
+				results[i].Text = text
+			}
+		}
+	}
+
 	results = uniqueInteractions(results)
 	return results, nil
 }
 
 type dbInteraction struct {
-	Plausibility  *int   `db:"Plausibilitaet"`
-	Relevance     *int   `db:"Relevanz"`
-	Frequency     *int   `db:"Haeufigkeit"`
-	Credibility   *int   `db:"Quellenbewertung"`
-	Direction     *int   `db:"Richtung"`
-	KeyFAML       uint64 `db:"Key_FAM_L"`
-	KeyFAMR       uint64 `db:"Key_FAM_R"`
-	KeyStoL       uint64 `db:"Key_STO_L"`
-	KeyStoR       uint64 `db:"Key_STO_R"`
+	KeyINT        uint64  `db:"Key_INT"`
+	TextRef       *uint64 `db:"Textverweis"`
+	Plausibility  *int    `db:"Plausibilitaet"`
+	Relevance     *int    `db:"Relevanz"`
+	Frequency     *int    `db:"Haeufigkeit"`
+	Credibility   *int    `db:"Quellenbewertung"`
+	Direction     *int    `db:"Richtung"`
+	KeyFAML       uint64  `db:"Key_FAM_L"`
+	KeyFAMR       uint64  `db:"Key_FAM_R"`
+	KeyStoL       uint64  `db:"Key_STO_L"`
+	KeyStoR       uint64  `db:"Key_STO_R"`
 	KeyFAMLBucket []uint64
 	KeyFAMRBucket []uint64
 }
@@ -609,6 +660,7 @@ func mapCompoundInteracions(
 	var results = make([]PZNInteraction, len(curated))
 	for i, interaction := range curated {
 		results[i] = PZNInteraction{
+			KeyINT:       interaction.KeyINT,
 			Plausibility: ic.PlausibilityTranslator(interaction.Plausibility, detailedDesc),
 			Relevance:    ic.RelevanceTranslator(interaction.Relevance, detailedDesc),
 			Frequency:    ic.FrequencyTranslator(interaction.Frequency, detailedDesc),
@@ -664,4 +716,86 @@ func fetchCompoundDoses(db *sqlx.DB, keyInt, keySto []uint64) ([]CompoundDose, e
 	}
 
 	return compoundDoses, nil
+}
+
+func fetchInteractionTexts[T interface {
+	getKeyINT() uint64
+	getTextRef() *uint64
+}](db *sqlx.DB, interactions []T) (map[uint64]*InteractionText, error) {
+	textRefs := make([]uint64, 0, len(interactions))
+	intToTextRef := make(map[uint64]uint64, len(interactions))
+	seenTextRefs := make(map[uint64]struct{}, len(interactions))
+	for _, interaction := range interactions {
+		if interaction.getTextRef() == nil {
+			continue
+		}
+		textRef := *interaction.getTextRef()
+		intToTextRef[interaction.getKeyINT()] = textRef
+		if _, exists := seenTextRefs[textRef]; exists {
+			continue
+		}
+		seenTextRefs[textRef] = struct{}{}
+		textRefs = append(textRefs, textRef)
+	}
+
+	textByRef := make(map[uint64]*InteractionText, len(textRefs))
+	if len(textRefs) == 0 {
+		return map[uint64]*InteractionText{}, nil
+	}
+
+	queryBuilder := squirrel.Select("Textverweis", "Textfeld", "Text").
+		From("ITX_C").
+		Where(squirrel.Eq{"Textverweis": textRefs}).
+		Where(squirrel.Eq{"Textfeld": []int{340, 40, 140, 9}})
+
+	query, args, _ := queryBuilder.ToSql()
+	var rows []struct {
+		TextRef   uint64 `db:"Textverweis"`
+		TextField int    `db:"Textfeld"`
+		Text      string `db:"Text"`
+	}
+	if err := db.Select(&rows, query, args...); err != nil {
+		return nil, err
+	}
+
+	for _, row := range rows {
+		if _, exists := textByRef[row.TextRef]; !exists {
+			textByRef[row.TextRef] = &InteractionText{}
+		}
+		switch row.TextField {
+		case 340:
+			textByRef[row.TextRef].DataBasis = &row.Text
+		case 40:
+			textByRef[row.TextRef].PharmacologicEffect = &row.Text
+		case 140:
+			textByRef[row.TextRef].Mechanism = &row.Text
+		case 9:
+			textByRef[row.TextRef].Literature = &row.Text
+		}
+	}
+
+	textByInt := make(map[uint64]*InteractionText, len(intToTextRef))
+	for keyINT, textRef := range intToTextRef {
+		if text, ok := textByRef[textRef]; ok {
+			textByInt[keyINT] = text
+		}
+	}
+
+	return textByInt, nil
+}
+
+func (d dbInteraction) getKeyINT() uint64 {
+	return d.KeyINT
+}
+
+func (d dbInteraction) getTextRef() *uint64 {
+	return d.TextRef
+}
+
+func (d compoundDBInteraction) getKeyINT() uint64 {
+	return d.KeyINT
+}
+
+func (d compoundDBInteraction) getTextRef() *uint64 {
+	return d.TextRef
 }
