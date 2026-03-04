@@ -2,11 +2,12 @@ package compoundcontroller
 
 import (
 	"fmt"
+	"observeddb-go-api/cfg"
+	"observeddb-go-api/internal/handle"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"observeddb-go-api/cfg"
-	"observeddb-go-api/internal/handle"
 
 	"regexp"
 	"strings"

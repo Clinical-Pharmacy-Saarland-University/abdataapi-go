@@ -28,7 +28,7 @@ func NewSysController(resourceHandle *handle.ResourceHandle) *SysController {
 func (sc *SysController) GetPing(c *gin.Context) {
 	type PingResponse struct {
 		Message string `json:"message" example:"pong"` // Message
-	} // @name PingResp
+	} //	@name	PingResp
 
 	handle.Success(c, PingResponse{Message: "pong"})
 }
@@ -43,7 +43,7 @@ func (sc *SysController) GetInfo(c *gin.Context) {
 	type InfoResponse struct {
 		API    cfg.MetaConfig   `json:"meta_info"`  // Meta
 		Limits cfg.LimitsConfig `json:"api_limits"` // Limits
-	} // @name InfoResp
+	} //	@name	InfoResp
 
 	res := InfoResponse{
 		API:    sc.Meta,

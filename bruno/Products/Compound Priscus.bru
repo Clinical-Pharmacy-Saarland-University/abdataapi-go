@@ -1,0 +1,15 @@
+meta {
+  name: Compound Priscus
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{url}}/api/v1/priscus/compounds?compounds=Ramipril,Hydrochlorothiazid,diazepam
+  body: none
+  auth: inherit
+}
+
+params:query {
+  compounds: Ramipril,Hydrochlorothiazid,diazepam
+}

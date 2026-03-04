@@ -16,7 +16,7 @@ type AuthTokens struct {
 	TokenType        string    `json:"token_type" example:"Bearer"`                       // Token type
 	AccessExpiresIn  time.Time `json:"access_expires_in" example:"2021-07-01T12:00:00Z"`  // Access token expiration time
 	RefreshExpiresIn time.Time `json:"refresh_expires_in" example:"2021-07-01T12:00:00Z"` // Refresh token expiration time
-} // @name AuthTokens
+} //	@name	AuthTokens
 
 type CustomClaims struct {
 	Email string `json:"email"`

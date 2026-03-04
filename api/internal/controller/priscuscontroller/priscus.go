@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"observeddb-go-api/cfg"
+	"observeddb-go-api/internal/controller/common"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/utils/apierr"
 	"observeddb-go-api/internal/utils/validate"
@@ -31,6 +32,11 @@ type PriscusResponse struct {
 	IsPriscus bool   `json:"priscus"`
 }
 
+type PriscusCompoundResult struct {
+	Input     string `json:"input"`
+	IsPriscus bool   `json:"priscus"`
+}
+
 // @Summary		List Priscus status for PZNs
 // @Description	Get Priscus status for one or more PZNs. Each PZN can only have one priscus status.
 // @Tags			Priscus
@@ -54,6 +60,44 @@ func (pc *PriscusController) GetPriscusStatus(c *gin.Context) {
 	pzns := strings.Split(query.PZNs, ",")
 
 	result, err := fetchPriscusStatus(pzns, pc.DB)
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+
+	handle.Success(c, result)
+}
+
+// @Summary		List Priscus status for compounds
+// @Description	Get Priscus status for one or more compound names.
+// @Tags			Priscus
+// @Produce		json
+// @Param			compounds	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
+// @Success		200		{array}	PriscusCompoundResult	"List of input compounds with Priscus status"
+// @Failure		400		"Bad request (e.g. missing compounds or too many names)"
+// @Failure		500		"Internal server error"
+// @Router			/priscus/compounds [get]
+//
+// @Security		Bearer
+func (pc *PriscusController) GetPriscusStatusByCompound(c *gin.Context) {
+	compoundsParam := c.Query("compounds")
+	if compoundsParam == "" {
+		handle.BadRequestError(c, "Missing required parameter: compounds")
+		return
+	}
+
+	compounds := splitAndTrim(compoundsParam)
+	if len(compounds) == 0 {
+		handle.BadRequestError(c, "Missing required parameter: compounds")
+		return
+	}
+
+	if len(compounds) > pc.Limits.BatchQueries {
+		handle.BadRequestError(c, fmt.Sprintf("Too many names provided. Maximum is %d", pc.Limits.BatchQueries))
+		return
+	}
+
+	result, err := fetchPriscusStatusByCompound(compounds, pc.DB)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -97,4 +141,71 @@ func fetchPriscusStatus(pzns []string, db *sqlx.DB) ([]PriscusResponse, error) {
 	}
 
 	return responses, nil
+}
+
+func fetchPriscusStatusByCompound(compounds []string, db *sqlx.DB) ([]PriscusCompoundResult, error) {
+	stoCompoundMap, err := common.StoToCompoundsMap(db, compounds)
+	if err != nil {
+		return nil, fmt.Errorf("error resolving priscus compound STO keys: %w", err)
+	}
+
+	keySTOs := make([]uint64, 0, len(stoCompoundMap))
+	inputPriscus := make(map[string]bool, len(compounds))
+	for keySTO, matchedCompounds := range stoCompoundMap {
+		keySTOs = append(keySTOs, keySTO)
+		for _, compound := range matchedCompounds {
+			inputPriscus[compound] = false
+		}
+	}
+
+	priscusSTOs := make(map[uint64]bool, len(keySTOs))
+	if len(keySTOs) > 0 {
+		queryBuilder := squirrel.Select("Key_STO").
+			From("SZG_DB").
+			Where(squirrel.Eq{"Key_STO": keySTOs}).
+			Where(squirrel.Eq{"Key_SGR": "10084520"})
+
+		query, args, _ := queryBuilder.ToSql()
+		var results []struct {
+			KeySTO uint64 `db:"Key_STO"`
+		}
+
+		if err := db.Select(&results, query, args...); err != nil {
+			return nil, fmt.Errorf("error fetching priscus status for compounds: %w", err)
+		}
+
+		for _, result := range results {
+			priscusSTOs[result.KeySTO] = true
+		}
+	}
+
+	for keySTO, matchedCompounds := range stoCompoundMap {
+		isPriscus := priscusSTOs[keySTO]
+		for _, compound := range matchedCompounds {
+			inputPriscus[compound] = isPriscus
+		}
+	}
+
+	response := make([]PriscusCompoundResult, 0, len(compounds))
+	for _, compound := range compounds {
+		response = append(response, PriscusCompoundResult{
+			Input:     compound,
+			IsPriscus: inputPriscus[compound],
+		})
+	}
+
+	return response, nil
+}
+
+func splitAndTrim(raw string) []string {
+	parts := strings.Split(raw, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+
+	return result
 }

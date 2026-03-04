@@ -692,6 +692,13 @@ definitions:
     additionalProperties:
       type: string
     type: object
+  priscuscontroller.PriscusCompoundResult:
+    properties:
+      input:
+        type: string
+      priscus:
+        type: boolean
+    type: object
   priscuscontroller.PriscusResponse:
     properties:
       PZN:
@@ -738,6 +745,13 @@ definitions:
         items:
           $ref: '#/definitions/pzncontroller.ProductInfo'
         type: array
+    type: object
+  qtcontroller.QTCompoundResult:
+    properties:
+      input:
+        type: string
+      qt_category:
+        type: string
     type: object
   qtcontroller.QTResponse:
     properties:
@@ -1218,6 +1232,33 @@ paths:
       summary: Query drug-drug interactions between PZNs in batch
       tags:
       - Drug-Drug Interactions
+  /priscus/compounds:
+    get:
+      description: Get Priscus status for one or more compound names.
+      parameters:
+      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+        in: query
+        name: compounds
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of input compounds with Priscus status
+          schema:
+            items:
+              $ref: '#/definitions/priscuscontroller.PriscusCompoundResult'
+            type: array
+        "400":
+          description: Bad request (e.g. missing compounds or too many names)
+        "500":
+          description: Internal server error
+      security:
+      - Bearer: []
+      summary: List Priscus status for compounds
+      tags:
+      - Priscus
   /priscus/pzns:
     get:
       description: Get Priscus status for one or more PZNs. Each PZN can only have
@@ -1301,6 +1342,33 @@ paths:
       summary: List product info for PZNs
       tags:
       - Product
+  /qt/compounds:
+    get:
+      description: Get QT status for one or more compound names. Matches are grouped
+        like the compound search endpoint and include all related compounds sharing
+        the same identifier.
+      parameters:
+      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+        in: query
+        name: compounds
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of input compounds with QT status
+          schema:
+            items:
+              $ref: '#/definitions/qtcontroller.QTCompoundResult'
+            type: array
+        "400":
+          description: Bad request (e.g. missing names or too many names)
+        "500":
+          description: Internal server error
+      summary: List QT status for compounds
+      tags:
+      - QT
   /qt/pzns:
     get:
       description: Get QT status for one or more PZNs. Each PZN can only have one

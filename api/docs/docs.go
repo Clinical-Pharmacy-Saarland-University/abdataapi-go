@@ -642,6 +642,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/priscus/compounds": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get Priscus status for one or more compound names.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Priscus"
+                ],
+                "summary": "List Priscus status for compounds",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated compound names (e.g., Metoprolol,Aspirin)",
+                        "name": "compounds",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of input compounds with Priscus status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/priscuscontroller.PriscusCompoundResult"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. missing compounds or too many names)"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
         "/priscus/pzns": {
             "get": {
                 "security": [
@@ -767,6 +810,44 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "PZN(s) not found"
+                    }
+                }
+            }
+        },
+        "/qt/compounds": {
+            "get": {
+                "description": "Get QT status for one or more compound names. Matches are grouped like the compound search endpoint and include all related compounds sharing the same identifier.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "QT"
+                ],
+                "summary": "List QT status for compounds",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated compound names (e.g., Metoprolol,Aspirin)",
+                        "name": "compounds",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of input compounds with QT status",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/qtcontroller.QTCompoundResult"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. missing names or too many names)"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -2414,6 +2495,17 @@ const docTemplate = `{
                 "type": "string"
             }
         },
+        "priscuscontroller.PriscusCompoundResult": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "priscus": {
+                    "type": "boolean"
+                }
+            }
+        },
         "priscuscontroller.PriscusResponse": {
             "type": "object",
             "properties": {
@@ -2484,6 +2576,17 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/pzncontroller.ProductInfo"
                     }
+                }
+            }
+        },
+        "qtcontroller.QTCompoundResult": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "qt_category": {
+                    "type": "string"
                 }
             }
         },

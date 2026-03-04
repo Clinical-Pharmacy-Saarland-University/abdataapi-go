@@ -1,0 +1,15 @@
+meta {
+  name: Compound Interaction
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{url}}/api/v1/interactions/compounds?compounds=ramipril,ciprofloxacin,chinidin,rifampicin,hydrochlorothiazid
+  body: none
+  auth: inherit
+}
+
+params:query {
+  compounds: ramipril,ciprofloxacin,chinidin,rifampicin,hydrochlorothiazid
+}

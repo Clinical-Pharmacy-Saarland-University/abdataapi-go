@@ -145,6 +145,7 @@ func RegisterPriscusRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHa
 	route := r.Group("/priscus")
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
+		route.GET("/compounds", c.GetPriscusStatusByCompound)
 		route.GET("/pzns", c.GetPriscusStatus)
 	}
 }
@@ -165,6 +166,7 @@ func RegisterQTRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle)
 	route := r.Group("/qt")
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
+		route.GET("/compounds", c.GetQTStatusByCompound)
 		route.GET("/pzns", c.GetQTStatus)
 	}
 }

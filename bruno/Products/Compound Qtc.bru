@@ -1,0 +1,15 @@
+meta {
+  name: Compound Qtc
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{url}}/api/v1/qt/compounds?compounds=ramipril,ciprofloxacin,chinidin,rifampicin,hydrochlorothiazid
+  body: none
+  auth: inherit
+}
+
+params:query {
+  compounds: ramipril,ciprofloxacin,chinidin,rifampicin,hydrochlorothiazid
+}

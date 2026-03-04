@@ -38,7 +38,7 @@ func NewADRController(resourceHandle *handle.ResourceHandle) *ADRController {
 // @Description	The `lang` parameter can be used to specify the language of the ADR descriptions.
 // @Description	Valid values are `english`, `german`, and `german-simple`.
 // @Description	The default language is `english`.
-// @Description `german-simple` returns the simplified German ADR description.
+// @Description	`german-simple` returns the simplified German ADR description.
 // @Tags			Adverse Drug Reactions
 // @Produce		json
 // @Param			pzns	query	string	true	"Comma-separated list of PZNs"

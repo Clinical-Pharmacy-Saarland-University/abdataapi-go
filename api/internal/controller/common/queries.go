@@ -41,13 +41,18 @@ func FamToPZN(db *sqlx.DB, pzns []string) (map[uint64][]string, error) {
 //  2. The Sto Key is key of the ACTIVE substance in the database.
 //     e.g. for verapamil hydrochloride, the STO key would be the key of verapamil.
 func StoToCompoundsMap(db *sqlx.DB, compounds []string) (map[uint64][]string, error) {
+	normalizedCompounds := make([]string, 0, len(compounds))
+	for _, compound := range compounds {
+		normalizedCompounds = append(normalizedCompounds, strings.ToLower(strings.TrimSpace(compound)))
+	}
+
 	queryBuilder := squirrel.Select(
 		"Name",
 		"CASE WHEN Typ = 100 THEN Key_STO_1 ELSE Key_STO END AS DDI_Key_STO").
 		Distinct().
 		From("SNA_DB").
 		LeftJoin("VSS_DB ON SNA_DB.Key_STO = VSS_DB.Key_STO_2").
-		Where(squirrel.Eq{"Name": compounds})
+		Where(squirrel.Eq{"LOWER(Name)": normalizedCompounds})
 
 	type SnaPair struct {
 		Name      string `db:"Name"`

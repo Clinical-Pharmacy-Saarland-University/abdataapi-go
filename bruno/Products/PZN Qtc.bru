@@ -1,0 +1,15 @@
+meta {
+  name: PZN Qtc
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{url}}/api/v1/qt/pzns?pzns=00639943,06995774
+  body: none
+  auth: inherit
+}
+
+params:query {
+  pzns: 00639943,06995774
+}
