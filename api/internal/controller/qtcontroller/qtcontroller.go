@@ -78,10 +78,10 @@ func (qc *QTController) GetQTStatus(c *gin.Context) {
 // @Description	Get QT status for one or more compound names. Matches are grouped like the compound search endpoint and include all related compounds sharing the same identifier.
 // @Tags			QT
 // @Produce		json
-// @Param			compounds	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
-// @Success		200		{array}	QTCompoundResult	"List of input compounds with QT status"
-// @Failure		400		"Bad request (e.g. missing names or too many names)"
-// @Failure		500		"Internal server error"
+// @Param			compounds	query	string				true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
+// @Success		200			{array}	QTCompoundResult	"List of input compounds with QT status"
+// @Failure		400			"Bad request (e.g. missing names or too many names)"
+// @Failure		500			"Internal server error"
 // @Router			/qt/compounds [get]
 func (qc *QTController) GetQTStatusByCompound(c *gin.Context) {
 	compoundsParam := c.Query("compounds")

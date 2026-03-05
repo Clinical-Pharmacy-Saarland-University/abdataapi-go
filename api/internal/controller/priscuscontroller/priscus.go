@@ -72,10 +72,10 @@ func (pc *PriscusController) GetPriscusStatus(c *gin.Context) {
 // @Description	Get Priscus status for one or more compound names.
 // @Tags			Priscus
 // @Produce		json
-// @Param			compounds	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
-// @Success		200		{array}	PriscusCompoundResult	"List of input compounds with Priscus status"
-// @Failure		400		"Bad request (e.g. missing compounds or too many names)"
-// @Failure		500		"Internal server error"
+// @Param			compounds	query	string					true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
+// @Success		200			{array}	PriscusCompoundResult	"List of input compounds with Priscus status"
+// @Failure		400			"Bad request (e.g. missing compounds or too many names)"
+// @Failure		500			"Internal server error"
 // @Router			/priscus/compounds [get]
 //
 // @Security		Bearer

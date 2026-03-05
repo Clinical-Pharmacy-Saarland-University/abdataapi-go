@@ -38,7 +38,7 @@ type InteractionText struct {
 	PharmacologicEffect *string `json:"pharmacologic_effect,omitempty"`
 	Mechanism           *string `json:"mechanism,omitempty"`
 	Literature          *string `json:"literature,omitempty"`
-} // @name InteractionText
+} //	@name	InteractionText
 
 func NewInteractionController(resourceHandle *handle.ResourceHandle) *InteractionController {
 	return &InteractionController{

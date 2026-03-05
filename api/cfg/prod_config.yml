@@ -14,7 +14,6 @@ log:
   max_size: 50
   max_backups: 3
 database:
-  db_name: "medinfo_spm"
   max_open_conns: 50
   max_idle_conns: 10
   max_conn_lifetime: "1h"

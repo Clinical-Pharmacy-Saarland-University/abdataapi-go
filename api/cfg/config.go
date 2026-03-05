@@ -16,7 +16,7 @@ import (
 type Bytes []byte
 
 type DatabaseConfig struct {
-	DBName          string        `yaml:"db_name"`
+	DBName          string        `env:"MYSQL_DB_NAME, required"`
 	Host            string        `env:"MYSQL_HOST, required"`
 	Username        string        `env:"MYSQL_USER, required"`
 	Password        string        `env:"MYSQL_PASSWORD, required"`
