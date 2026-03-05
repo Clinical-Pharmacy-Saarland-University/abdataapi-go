@@ -68,7 +68,7 @@ func (ic *InteractionController) GetInterDescription(c *gin.Context) {
 // @Description	The direction of the interaction describes the relationship between the victims (left)
 // @Description	and the perpetrators (right).
 //
-// @Description	The left size and right side of the interaction can be more than one PZN if the same interaction
+// @Description	The left side and right side of the interaction can include more than one PZN if the same interaction
 // @Description	is observed between multiple PZNs.
 //
 // @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
@@ -168,7 +168,7 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 // @Description	The direction of the interaction describes the relationship between the victims (left)
 // @Description	and the perpetrators (right).
 //
-// @Description	The left size and right side of the interaction can be more than one PZN if the same interaction
+// @Description	The left side and right side of the interaction can include more than one PZN if the same interaction
 // @Description	is observed between multiple PZNs.
 //
 // @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
@@ -322,9 +322,9 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Description	The direction of the interaction describes the relationship between the victims (left)
 // @Description	and the perpetrators (right).
 //
-// @Description	The left size and right side of the interaction can be more than one compounds if the same interaction
+// @Description	The left side and right side of the interaction can include more than one compound if the same interaction
 // @Description	is observed between multiple compounds. This can be the case if the same compound is marketed
-// @Description	under different names or derivates are considered.
+// @Description	under different names or derivatives are considered.
 //
 // @Description	If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
 //
@@ -333,7 +333,7 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 //
 // @Tags			Drug-Drug Interactions
 // @Produce		json
-// @Param			pzns	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
+// @Param			compounds	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
 // @Param			doses	query		boolean											false	"Fetch doses"								default:"false"
 // @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
 // @Param			text	query		boolean											false	"Fetch interaction text"					default:"false"

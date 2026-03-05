@@ -210,7 +210,7 @@ func (pc *PZNController) GetProductList(c *gin.Context) {
 }
 
 // @Summary		List active compounds for PZNs
-// @Description	Get active compounds for one or more PZNs. Each PZN can only have multiple active compounds.
+// @Description	Get active compounds for one or more PZNs. Each PZN can have multiple active compounds.
 // @Tags			Product
 // @Produce		json
 // @Param			pzns	query	string		true	"Comma separated string of PZNs"	example:"1234567,7654321"

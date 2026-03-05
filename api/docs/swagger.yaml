@@ -1039,16 +1039,16 @@ paths:
         and direction of the interaction.
         The direction of the interaction describes the relationship between the victims (left)
         and the perpetrators (right).
-        The left size and right side of the interaction can be more than one compounds if the same interaction
+        The left side and right side of the interaction can include more than one compound if the same interaction
         is observed between multiple compounds. This can be the case if the same compound is marketed
-        under different names or derivates are considered.
+        under different names or derivatives are considered.
         If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
         If the `doses` query parameter is set to `true`, the interaction will contain the relevant
         doses/formulations of the compounds that are involved in the interaction.
       parameters:
       - description: Comma separated string of compounds
         in: query
-        name: pzns
+        name: compounds
         required: true
         type: string
       - description: Fetch doses
@@ -1161,7 +1161,7 @@ paths:
         and direction of the interaction.
         The direction of the interaction describes the relationship between the victims (left)
         and the perpetrators (right).
-        The left size and right side of the interaction can be more than one PZN if the same interaction
+        The left side and right side of the interaction can include more than one PZN if the same interaction
         is observed between multiple PZNs.
         If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
       parameters:
@@ -1218,7 +1218,7 @@ paths:
         and direction of the interaction.
         The direction of the interaction describes the relationship between the victims (left)
         and the perpetrators (right).
-        The left size and right side of the interaction can be more than one PZN if the same interaction
+        The left side and right side of the interaction can include more than one PZN if the same interaction
         is observed between multiple PZNs.
         If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
         Ids for the queries are required to be unique.
@@ -1324,8 +1324,8 @@ paths:
       - Priscus
   /product/activecompounds/pzns:
     get:
-      description: Get active compounds for one or more PZNs. Each PZN can only have
-        multiple active compounds.
+      description: Get active compounds for one or more PZNs. Each PZN can have multiple
+        active compounds.
       parameters:
       - description: Comma separated string of PZNs
         in: query

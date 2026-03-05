@@ -88,12 +88,12 @@ func (uc *UserController) Login(c *gin.Context) {
 
 	user, err := model.GetUserByEmail(uc.DB, query.Login)
 	if err != nil {
-		handle.UnauthorizedError(c, "Invalid ceredentials")
+		handle.UnauthorizedError(c, "Invalid credentials")
 		return
 	}
 
 	if user.PwdHash == nil {
-		handle.UnauthorizedError(c, "Invalid ceredentials")
+		handle.UnauthorizedError(c, "Invalid credentials")
 		return
 	}
 

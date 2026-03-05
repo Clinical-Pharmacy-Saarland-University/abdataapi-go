@@ -369,7 +369,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "The result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one compounds if the same interaction\nis observed between multiple compounds. This can be the case if the same compound is marketed\nunder different names or derivates are considered.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIf the ` + "`" + `doses` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction will contain the relevant\ndoses/formulations of the compounds that are involved in the interaction.",
+                "description": "The result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left side and right side of the interaction can include more than one compound if the same interaction\nis observed between multiple compounds. This can be the case if the same compound is marketed\nunder different names or derivatives are considered.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIf the ` + "`" + `doses` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction will contain the relevant\ndoses/formulations of the compounds that are involved in the interaction.",
                 "produces": [
                     "application/json"
                 ],
@@ -381,7 +381,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Comma separated string of compounds",
-                        "name": "pzns",
+                        "name": "compounds",
                         "in": "query",
                         "required": true
                     },
@@ -518,7 +518,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "The result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.",
+                "description": "The result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left side and right side of the interaction can include more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.",
                 "produces": [
                     "application/json"
                 ],
@@ -592,7 +592,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "This is the batch version of the ` + "`" + `GET /interactions/pzns` + "`" + ` endpoint.\nThe result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIds for the queries are required to be unique.\nQueries will be processed in parallel.\n**It is possible that some/all queries will fail. This will result in error code ` + "`" + `207` + "`" + `.**\nThe response will contain the results of all queries, even if some of them failed.\n**The user is responsible for checking the status of each query in the batch.**",
+                "description": "This is the batch version of the ` + "`" + `GET /interactions/pzns` + "`" + ` endpoint.\nThe result will be an array of drug-drug interactions between the provided PZNs.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left side and right side of the interaction can include more than one PZN if the same interaction\nis observed between multiple PZNs.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIds for the queries are required to be unique.\nQueries will be processed in parallel.\n**It is possible that some/all queries will fail. This will result in error code ` + "`" + `207` + "`" + `.**\nThe response will contain the results of all queries, even if some of them failed.\n**The user is responsible for checking the status of each query in the batch.**",
                 "produces": [
                     "application/json"
                 ],
@@ -747,7 +747,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Get active compounds for one or more PZNs. Each PZN can only have multiple active compounds.",
+                "description": "Get active compounds for one or more PZNs. Each PZN can have multiple active compounds.",
                 "produces": [
                     "application/json"
                 ],
