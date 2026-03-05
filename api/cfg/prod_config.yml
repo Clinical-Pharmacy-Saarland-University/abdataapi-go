@@ -1,8 +1,8 @@
 meta:
-  api_name: "MedInfo API - Safepolymed"
+  api_name: "MedInfo API - Safepolymed (development)"
   api_description: "A REST-like API to access the MedInfo Service for the Safepolymed study."
   api_version: "1.0.0"
-  api_url: "medinfo-spm.precisiondosing.de"
+  api_url: "medinfo-dev.precisiondosing.de"
   group: "/api/v1"
 server:
   read_write_timeout: "120s"
@@ -20,7 +20,7 @@ database:
 auth_token:
   access_expiration_time: "12h"
   refresh_expiration_time: "24h"
-  issuer: "https://medinfo-spm.precisiondosing.de"
+  issuer: "https://medinfo-dev.precisiondosing.de"
 reset_token:
   expiration_time: "48h"
   retry_interval: "24h"
