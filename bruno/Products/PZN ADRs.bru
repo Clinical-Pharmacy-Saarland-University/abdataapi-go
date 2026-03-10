@@ -1,0 +1,25 @@
+meta {
+  name: PZN ADRs
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{url}}/api/v1/adrs/pzns?pzns=11532295&lang=english
+  body: none
+  auth: inherit
+}
+
+params:query {
+  pzns: 11532295
+  lang: english
+}
+
+tests {
+  test("returns ADRs for PZNs", function() {
+    const body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body.status).to.equal("success");
+    expect(Array.isArray(body.data)).to.equal(true);
+  });
+}

@@ -52,7 +52,7 @@ func StoToCompoundsMap(db *sqlx.DB, compounds []string) (map[uint64][]string, er
 		Distinct().
 		From("SNA_DB").
 		LeftJoin("VSS_DB ON SNA_DB.Key_STO = VSS_DB.Key_STO_2").
-		Where(squirrel.Eq{"LOWER(Name)": normalizedCompounds})
+		Where(squirrel.Eq{"Name": normalizedCompounds})
 
 	type SnaPair struct {
 		Name      string `db:"Name"`

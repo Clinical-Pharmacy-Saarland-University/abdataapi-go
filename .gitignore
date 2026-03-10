@@ -26,3 +26,4 @@ go.work.sum
 *.log
 tests/.dev_env
 /api/buildcache
+/api/.gocache

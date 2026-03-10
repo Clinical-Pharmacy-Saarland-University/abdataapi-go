@@ -334,15 +334,15 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Tags			Drug-Drug Interactions
 // @Produce		json
 // @Param			compounds	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
-// @Param			doses	query		boolean											false	"Fetch doses"								default:"false"
-// @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
-// @Param			text	query		boolean											false	"Fetch interaction text"					default:"false"
-// @Success		200		{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
-// @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
-// @Failure		500		{object}	handle.jSendError								"Internal server error"
-// @Failure		401		{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
-// @Failure		400		{object}	handle.jsendFailure[handle.errorResponse]		"Invalid compound names"
-// @Failure		404		{object}	handle.jsendFailure[handle.errorResponse]		"Compound(s) not found"
+// @Param			doses		query		boolean											false	"Fetch doses"								default:"false"
+// @Param			details		query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
+// @Param			text		query		boolean											false	"Fetch interaction text"					default:"false"
+// @Success		200			{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
+// @Failure		422			{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
+// @Failure		500			{object}	handle.jSendError								"Internal server error"
+// @Failure		401			{object}	handle.jsendFailure[handle.errorResponse]		"Unauthorized"
+// @Failure		400			{object}	handle.jsendFailure[handle.errorResponse]		"Invalid compound names"
+// @Failure		404			{object}	handle.jsendFailure[handle.errorResponse]		"Compound(s) not found"
 //
 // @Security		Bearer
 //

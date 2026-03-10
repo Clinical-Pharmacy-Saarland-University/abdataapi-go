@@ -156,6 +156,7 @@ func RegisterADRRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle
 	route := r.Group("/adrs")
 	route.Use(middleware.Authentication(&resourceHandle.AuthCfg))
 	{
+		route.GET("/compounds", c.GetAdrsForCompound)
 		route.GET("/pzns", c.GetAdrsForPZNs)
 	}
 }

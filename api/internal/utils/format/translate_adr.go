@@ -1,6 +1,6 @@
 package format
 
-func NewAdrFrequencyTranslator() func(*int, bool) *string {
+func NewAdrFrequencyTranslator() func(*int, string) *string {
 	adrFrequencyDescriptionEn := map[int]string{
 		1: "Very common (>= 10%)",
 		2: "Common (>= 1% to < 10%)",
@@ -19,5 +19,20 @@ func NewAdrFrequencyTranslator() func(*int, bool) *string {
 		6: "Nicht bekannt",
 	}
 
-	return baseTranslatorFactory(adrFrequencyDescriptionEn, adrFrequencyDescriptionDe)
+	return func(value *int, lang string) *string {
+		if value == nil {
+			return nil
+		}
+
+		translator := adrFrequencyDescriptionEn
+		if lang == "german" || lang == "german-simple" {
+			translator = adrFrequencyDescriptionDe
+		}
+
+		s, ok := translator[*value]
+		if !ok {
+			return nil
+		}
+		return &s
+	}
 }

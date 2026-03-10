@@ -1,0 +1,26 @@
+meta {
+  name: Compound ADRs All
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{url}}/api/v1/adrs/compounds?compound=metformin,metoprolol&lang=english&application=all
+  body: none
+  auth: inherit
+}
+
+params:query {
+  compound: metformin,metoprolol
+  lang: english
+  application: all
+}
+
+tests {
+  test("returns grouped ADRs for all supported applications", function() {
+    const body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body.status).to.equal("success");
+    expect(Array.isArray(body.data)).to.equal(true);
+  });
+}

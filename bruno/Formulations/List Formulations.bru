@@ -1,0 +1,20 @@
+meta {
+  name: List Formulations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{url}}/api/v1/formulations
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("returns formulations list", function() {
+    const body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body.status).to.equal("success");
+    expect(Array.isArray(body.data.formulations)).to.equal(true);
+  });
+}

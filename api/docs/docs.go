@@ -194,6 +194,67 @@ const docTemplate = `{
                 }
             }
         },
+        "/adrs/compounds": {
+            "get": {
+                "description": "Get ADRs for formulations/routes matching a compound name query.\nThe ` + "`" + `lang` + "`" + ` parameter can be used to specify the language of the ADR descriptions.\nValid values are ` + "`" + `english` + "`" + `, ` + "`" + `german` + "`" + `, and ` + "`" + `german-simple` + "`" + `.\nThe default language is ` + "`" + `english` + "`" + `.\n` + "`" + `german-simple` + "`" + ` returns the simplified German ADR description.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Adverse Drug Reactions"
+                ],
+                "summary": "List ADRs for a compound name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Compound name search term",
+                        "name": "compound",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "enum": [
+                            "english",
+                            "german",
+                            "german-simple"
+                        ],
+                        "type": "string",
+                        "description": "Language for ADR names (default: english)",
+                        "name": "lang",
+                        "in": "query"
+                    },
+                    {
+                        "enum": [
+                            "extern",
+                            "invasive",
+                            "peroral",
+                            "all"
+                        ],
+                        "type": "string",
+                        "description": "Application filter (default: peroral)",
+                        "name": "application",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Matching compound/formulation ADRs grouped by input",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/adrcontroller.CompoundADRGroup"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. missing compound query or too many names)"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
         "/adrs/pzns": {
             "get": {
                 "description": "Get ADRs for one or more PZNs. Each PZN can have multiple ADRs.\nThe ` + "`" + `lang` + "`" + ` parameter can be used to specify the language of the ADR descriptions.\nValid values are ` + "`" + `english` + "`" + `, ` + "`" + `german` + "`" + `, and ` + "`" + `german-simple` + "`" + `.\nThe default language is ` + "`" + `english` + "`" + `.\n` + "`" + `german-simple` + "`" + ` returns the simplified German ADR description.",
@@ -2485,6 +2546,37 @@ const docTemplate = `{
                 },
                 "frequency_code": {
                     "type": "integer"
+                }
+            }
+        },
+        "adrcontroller.CompoundADRGroup": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/adrcontroller.CompoundADRItem"
+                    }
+                }
+            }
+        },
+        "adrcontroller.CompoundADRItem": {
+            "type": "object",
+            "properties": {
+                "adrs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/adrcontroller.ADR"
+                    }
+                },
+                "application": {
+                    "type": "string"
+                },
+                "compound_name": {
+                    "type": "string"
                 }
             }
         },

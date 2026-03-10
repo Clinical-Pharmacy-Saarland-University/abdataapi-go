@@ -114,21 +114,24 @@ These also use the same GORM user tables.
 
 ### `GET /admin/users/:email`
 
-- Resolves by `users.email`.
+- Resolves a single user by `users.email`.
 
 ### `DELETE /admin/users/:email`
 
-- Resolves by `users.email`.
+- Resolves the target user by `users.email`.
+- Rejects deleting the currently authenticated admin account.
 - Soft deletes the user row.
 
 ### `PATCH /admin/users/:email`
 
-- Resolves by `users.email`.
-- Updates `users.role` and/or `users.status`.
+- Resolves the target user by `users.email`.
+- Applies requested `role` and/or `status` updates.
+- Rejects empty updates.
+- Protects against deactivating/changing the last active admin in unsafe ways.
 
 ## Formulations
 
-### `GET /formulations/`
+### `GET /formulations`
 
 - Direct lookup only.
 - Tables:
@@ -277,6 +280,40 @@ These also use the same GORM user tables.
     - `german-simple` also requires `Vorzugsbezeichnung_L = 1`
 - Tables:
   - `PAE_DB`
+  - `NEB_C`
+  - `MIN_C`
+
+### `GET /adrs/compounds`
+
+- Input: `compound=...` search term.
+- Logic:
+  - Matches `SNA_DB.Name` with a case-insensitive partial search.
+  - Restricts to active ingredients with `FAI_DB.Stofftyp = 1`.
+  - Resolves matching families and formulations through `FAI_DB`, `FAM_DB`, `DAR_DB`, and `FAP_DB`.
+  - Reads ADR rows from `NEB_C`.
+  - Joins ADR text from `MIN_C`.
+  - Supports `application` filter values:
+    - `extern`
+    - `invasive`
+    - `peroral`
+    - `all`
+  - Default `application` is `peroral`.
+  - Returns the first matching formulation per application bucket within each input.
+  - For `application=all`, returns at most one item each for `extern`, `invasive`, and `peroral`.
+  - Response items now expose only:
+    - `application`
+    - `compound_name`
+    - `adrs`
+  - Language handling matches `/adrs/pzns`:
+    - `english` uses `Sprache = 2`
+    - `german` / `german-simple` use `Sprache = 1`
+    - `german-simple` also requires `Vorzugsbezeichnung_L = 1`
+- Tables:
+  - `SNA_DB`
+  - `FAI_DB`
+  - `FAM_DB`
+  - `DAR_DB`
+  - `FAP_DB`
   - `NEB_C`
   - `MIN_C`
 
