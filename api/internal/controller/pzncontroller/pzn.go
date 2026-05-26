@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"net/url"
 	"observeddb-go-api/cfg"
 	"observeddb-go-api/internal/handle"
 	"observeddb-go-api/internal/utils/apierr"
@@ -29,6 +30,242 @@ func NewPZNController(resourceHandle *handle.ResourceHandle) *PZNController {
 		Limits:             resourceHandle.Limits,
 		CategoryTranslator: format.NewProductTranslator(),
 	}
+}
+
+// @Summary		Search products by name
+// @Description	Fuzzy-search products by one or more product names and return matching PZNs with active compounds grouped by input.
+// @Tags			Product
+// @Produce		json
+// @Param			name	query	string					true	"Comma-separated product name search terms; encode literal commas as %2C"	example:"Delix+2%2C5,Plavix,Ramilich"
+// @Param			limit	query	int						false	"Maximum number of products to return per input (default: 20, max: 100)"
+// @Success		200		{array}	ProductSearchGroup	"Matching products with active compounds grouped by input"
+// @Failure		400		"Bad request (e.g. missing name)"
+// @Failure		500		"Internal server error"
+// @Router			/product/search [get]
+//
+// @Security		Bearer
+func (pc *PZNController) GetProductSearch(c *gin.Context) {
+	var query struct {
+		Limit int `form:"limit"`
+	}
+	if !handle.QueryBind(c, &query) {
+		return
+	}
+
+	names := productNameQueryValues(c.Request.URL.RawQuery, "name")
+	if len(names) == 0 {
+		names = productNameQueryValues(c.Request.URL.RawQuery, "q")
+	}
+	if len(names) == 0 {
+		handle.BadRequestError(c, "Missing required parameter: name")
+		return
+	}
+	if len(names) > pc.Limits.BatchQueries {
+		handle.BadRequestError(c, fmt.Sprintf("Too many names provided. Maximum is %d", pc.Limits.BatchQueries))
+		return
+	}
+
+	limit := query.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	result, err := fetchProductsByNames(names, limit, pc.DB)
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+
+	handle.Success(c, result)
+}
+
+type ProductSearchGroup struct {
+	Input   string                `json:"input"`
+	Results []ProductSearchResult `json:"results"`
+}
+
+type ProductSearchResult struct {
+	ProductName     string   `json:"product_name"`
+	PZN             string   `json:"pzn"`
+	ActiveCompounds []string `json:"active_compounds"`
+}
+
+func fetchProductsByNames(names []string, limit int, db *sqlx.DB) ([]ProductSearchGroup, error) {
+	results := make([]ProductSearchGroup, 0, len(names))
+	for _, name := range names {
+		products, err := fetchProductsByName(name, limit, db)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, ProductSearchGroup{
+			Input:   name,
+			Results: products,
+		})
+	}
+
+	return results, nil
+}
+
+func fetchProductsByName(name string, limit int, db *sqlx.DB) ([]ProductSearchResult, error) {
+	productQuery := squirrel.Select(
+		"FAM_DB.Key_FAM",
+		"FAM_DB.Produktname",
+		"PAE_DB.PZN").
+		Distinct().
+		From("FAM_DB").
+		Join("PAE_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM").
+		Where("PAE_DB.PZN IS NOT NULL").
+		Where("FAM_DB.Key_ATC IS NOT NULL").
+		Where("FAM_DB.Veterinaerpraeparat = 0").
+		Where("LOWER(FAM_DB.Produktname) LIKE ?", "%"+strings.ToLower(name)+"%").
+		OrderBy("FAM_DB.Produktname", "PAE_DB.PZN").
+		Limit(uint64(limit))
+
+	query, args, _ := productQuery.ToSql()
+	products := []struct {
+		KeyFAM      uint64 `db:"Key_FAM"`
+		ProductName string `db:"Produktname"`
+		PZN         string `db:"PZN"`
+	}{}
+	if err := db.Select(&products, query, args...); err != nil {
+		return nil, fmt.Errorf("error searching products by name: %w", err)
+	}
+	if len(products) == 0 {
+		return []ProductSearchResult{}, nil
+	}
+
+	fams := make([]uint64, 0, len(products))
+	for _, product := range products {
+		fams = append(fams, product.KeyFAM)
+	}
+
+	compoundQuery := squirrel.Select(
+		"FAI_DB.Key_FAM",
+		"FAI_DB.Key_STO",
+		"SNA_DB.Name",
+		"VSS_DB.Key_STO_1").
+		Distinct().
+		From("FAI_DB").
+		LeftJoin("VSS_DB ON VSS_DB.Key_STO_2 = FAI_DB.Key_STO").
+		LeftJoin("SNA_DB ON FAI_DB.Key_STO = SNA_DB.Key_STO").
+		Where(squirrel.Eq{"FAI_DB.Key_FAM": fams}).
+		Where("FAI_DB.Stofftyp = 1").
+		Where("SNA_DB.Vorzugsbezeichnung = 1").
+		Where(squirrel.Expr(`
+			SNA_DB.Key_STO NOT IN (
+				SELECT Key_STO_1 FROM VSS_DB WHERE Typ = 8
+			)`)).
+		OrderBy("FAI_DB.Key_FAM", "FAI_DB.Key_STO")
+
+	query, args, _ = compoundQuery.ToSql()
+	compoundRows := []struct {
+		KeyFAM  uint64  `db:"Key_FAM"`
+		KeySTO  string  `db:"Key_STO"`
+		Name    string  `db:"Name"`
+		KeySTO1 *string `db:"Key_STO_1"`
+	}{}
+	if err := db.Select(&compoundRows, query, args...); err != nil {
+		return nil, fmt.Errorf("error fetching active compounds for product search: %w", err)
+	}
+
+	compoundsByFAM := make(map[uint64][]string, len(products))
+	for _, product := range products {
+		compoundsByFAM[product.KeyFAM] = []string{}
+	}
+
+	groupedRows := make(map[uint64][]struct {
+		KeyFAM  uint64
+		KeySTO  string
+		Name    string
+		KeySTO1 *string
+	}, len(products))
+	for _, row := range compoundRows {
+		groupedRows[row.KeyFAM] = append(groupedRows[row.KeyFAM], struct {
+			KeyFAM  uint64
+			KeySTO  string
+			Name    string
+			KeySTO1 *string
+		}{
+			KeyFAM:  row.KeyFAM,
+			KeySTO:  row.KeySTO,
+			Name:    row.Name,
+			KeySTO1: row.KeySTO1,
+		})
+	}
+
+	for fam, rows := range groupedRows {
+		activeMap := make(map[string]string, len(rows))
+		for _, row := range rows {
+			active := true
+			for _, other := range rows {
+				if other.KeySTO1 != nil && row.KeySTO == *other.KeySTO1 {
+					active = false
+					break
+				}
+			}
+			if active {
+				activeMap[row.KeySTO] = row.Name
+			}
+		}
+		compoundsByFAM[fam] = slices.Collect(maps.Values(activeMap))
+	}
+
+	results := make([]ProductSearchResult, 0, len(products))
+	for _, product := range products {
+		results = append(results, ProductSearchResult{
+			ProductName:     product.ProductName,
+			PZN:             product.PZN,
+			ActiveCompounds: compoundsByFAM[product.KeyFAM],
+		})
+	}
+
+	return results, nil
+}
+
+func splitProductNames(rawValues ...string) []string {
+	result := make([]string, 0, len(rawValues))
+	for _, raw := range rawValues {
+		for _, part := range strings.Split(raw, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				result = append(result, part)
+			}
+		}
+	}
+
+	return result
+}
+
+func productNameQueryValues(rawQuery string, key string) []string {
+	values := make([]string, 0)
+	for _, pair := range strings.Split(rawQuery, "&") {
+		if pair == "" {
+			continue
+		}
+
+		rawKey, rawValue, _ := strings.Cut(pair, "=")
+		decodedKey, err := url.QueryUnescape(rawKey)
+		if err != nil || decodedKey != key {
+			continue
+		}
+
+		for _, rawPart := range strings.Split(rawValue, ",") {
+			decodedPart, err := url.QueryUnescape(rawPart)
+			if err != nil {
+				continue
+			}
+
+			decodedPart = strings.TrimSpace(decodedPart)
+			if decodedPart != "" {
+				values = append(values, decodedPart)
+			}
+		}
+	}
+
+	return values
 }
 
 func (pc *PZNController) GetProductList(c *gin.Context) {

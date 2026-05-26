@@ -793,6 +793,26 @@ definitions:
           $ref: '#/definitions/pzncontroller.ProductInfo'
         type: array
     type: object
+  pzncontroller.ProductSearchGroup:
+    properties:
+      input:
+        type: string
+      results:
+        items:
+          $ref: '#/definitions/pzncontroller.ProductSearchResult'
+        type: array
+    type: object
+  pzncontroller.ProductSearchResult:
+    properties:
+      active_compounds:
+        items:
+          type: string
+        type: array
+      product_name:
+        type: string
+      pzn:
+        type: string
+    type: object
   qtcontroller.QTCompoundResult:
     properties:
       input:
@@ -941,7 +961,7 @@ paths:
         The default language is `english`.
         `german-simple` returns the simplified German ADR description.
       parameters:
-      - description: Compound name search term
+      - description: Comma-separated compound name search terms
         in: query
         name: compound
         required: true
@@ -1442,6 +1462,40 @@ paths:
       security:
       - Bearer: []
       summary: List product info for PZNs
+      tags:
+      - Product
+  /product/search:
+    get:
+      description: Fuzzy-search products by one or more product names and return matching
+        PZNs with active compounds grouped by input.
+      parameters:
+      - description: Comma-separated product name search terms; encode literal commas
+          as %2C
+        in: query
+        name: name
+        required: true
+        type: string
+      - description: 'Maximum number of products to return per input (default: 20,
+          max: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Matching products with active compounds grouped by input
+          schema:
+            items:
+              $ref: '#/definitions/pzncontroller.ProductSearchGroup'
+            type: array
+        "400":
+          description: Bad request (e.g. missing name)
+        "500":
+          description: Internal server error
+      security:
+      - Bearer: []
+      summary: Search products by name
       tags:
       - Product
   /qt/compounds:

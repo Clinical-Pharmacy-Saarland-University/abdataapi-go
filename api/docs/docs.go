@@ -207,7 +207,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Compound name search term",
+                        "description": "Comma-separated compound name search terms",
                         "name": "compound",
                         "in": "query",
                         "required": true
@@ -883,6 +883,55 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "PZN(s) not found"
+                    }
+                }
+            }
+        },
+        "/product/search": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Fuzzy-search products by one or more product names and return matching PZNs with active compounds grouped by input.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Search products by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated product name search terms; encode literal commas as %2C",
+                        "name": "name",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum number of products to return per input (default: 20, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Matching products with active compounds grouped by input",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/pzncontroller.ProductSearchGroup"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. missing name)"
+                    },
+                    "500": {
+                        "description": "Internal server error"
                     }
                 }
             }
@@ -2723,6 +2772,37 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/pzncontroller.ProductInfo"
                     }
+                }
+            }
+        },
+        "pzncontroller.ProductSearchGroup": {
+            "type": "object",
+            "properties": {
+                "input": {
+                    "type": "string"
+                },
+                "results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.ProductSearchResult"
+                    }
+                }
+            }
+        },
+        "pzncontroller.ProductSearchResult": {
+            "type": "object",
+            "properties": {
+                "active_compounds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "pzn": {
+                    "type": "string"
                 }
             }
         },

@@ -183,6 +183,26 @@ These also use the same GORM user tables.
   - `FAI_DB -> VSS_DB` by `Key_STO`
   - `FAI_DB -> SNA_DB` by `Key_STO`
 
+### `GET /product/search`
+
+- Input: comma-separated or repeated `name=...` or `q=...`, optional `limit`.
+- Literal commas inside one product name must be URL-encoded as `%2C`, for example `name=Delix+2%2C5,Plavix,Ramilich`.
+- Logic:
+  - Fuzzy-matches `FAM_DB.Produktname` for each input name.
+  - Returns one response group per input name.
+  - Limits product/PZN hits per input before expanding active compounds.
+  - Fetches active ingredients for matching `Key_FAM` values.
+  - Uses the same active-compound filtering as `/product/list`:
+    - `FAI_DB.Stofftyp = 1`
+    - preferred `SNA_DB` names only
+    - excludes derivative parent rows from `VSS_DB.Typ = 8`
+- Tables:
+  - `FAM_DB`
+  - `PAE_DB`
+  - `FAI_DB`
+  - `VSS_DB`
+  - `SNA_DB`
+
 ### `GET /product/activecompounds/pzns`
 
 - Input PZNs are validated first.

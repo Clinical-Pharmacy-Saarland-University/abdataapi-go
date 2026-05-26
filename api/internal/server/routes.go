@@ -135,6 +135,7 @@ func RegisterPZNRoutes(r *gin.RouterGroup, resourceHandle *handle.ResourceHandle
 	{
 		route.GET("/activecompounds/pzns", c.GetActiveCompounds)
 		route.GET("/list", c.GetProductList)
+		route.GET("/search", c.GetProductSearch)
 		route.GET("/info/pzns", c.GetProductInfo)
 	}
 }

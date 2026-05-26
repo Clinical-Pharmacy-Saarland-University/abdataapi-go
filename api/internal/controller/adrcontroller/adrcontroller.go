@@ -77,9 +77,9 @@ func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 // @Description	`german-simple` returns the simplified German ADR description.
 // @Tags			Adverse Drug Reactions
 // @Produce		json
-// @Param			compound	query	string				true	"Comma-separated compound name search terms"		example:"metformin,metoprolol"
-// @Param			lang		query	string				false	"Language for ADR names (default: english)"	Enums(english,german,german-simple)
-// @Param			application	query	string				false	"Application filter (default: peroral)"		Enums(extern,invasive,peroral,all)
+// @Param			compound	query	string				true	"Comma-separated compound name search terms"	example:"metformin,metoprolol"
+// @Param			lang		query	string				false	"Language for ADR names (default: english)"		Enums(english,german,german-simple)
+// @Param			application	query	string				false	"Application filter (default: peroral)"			Enums(extern,invasive,peroral,all)
 // @Success		200			{array}	CompoundADRGroup	"Matching compound/formulation ADRs grouped by input"
 // @Failure		400			"Bad request (e.g. missing compound query or too many names)"
 // @Failure		500			"Internal server error"
@@ -138,10 +138,10 @@ type ADR struct {
 }
 
 type CompoundADRItem struct {
-	CompoundName string  `db:"compound_name" json:"compound_name"`
-	Application  string  `json:"application"`
-	KeyFAM       uint64  `json:"-"`
-	ADRs         []ADR   `json:"adrs"`
+	CompoundName string `db:"compound_name" json:"compound_name"`
+	Application  string `json:"application"`
+	KeyFAM       uint64 `json:"-"`
+	ADRs         []ADR  `json:"adrs"`
 }
 
 type CompoundADRGroup struct {
