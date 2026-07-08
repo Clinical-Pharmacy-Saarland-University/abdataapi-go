@@ -22,7 +22,7 @@ test *args:
 test-integration *args:
     @ cd api; if (Get-Command gotestsum -ErrorAction SilentlyContinue) { gotestsum --format testname -- -tags=integration ./... {{args}} } else { go test -tags=integration ./... {{args}} }
 
-# Builds the container image with podman
+# Creates a docker deployment image
 [group('deploy')]
 deploy-build:
     @ podman build --no-cache . --tag ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest

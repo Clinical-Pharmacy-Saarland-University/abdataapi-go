@@ -15,10 +15,10 @@ just init
 # Run API with hot reload (uses air + swagger generation)
 just run
 
-# Build the container image (podman)
+# Build Docker image
 just deploy-build
 
-# Run the container (requires .env file in root)
+# Run Docker container (requires .env file in root)
 just deploy-run
 
 # Lint
