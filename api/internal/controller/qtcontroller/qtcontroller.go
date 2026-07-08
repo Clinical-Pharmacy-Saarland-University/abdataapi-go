@@ -148,7 +148,9 @@ func fetchQTStatus(pzns []string, db *sqlx.DB, translate func(*int, bool) *strin
 	return responses, nil
 }
 
-func fetchQTStatusByCompound(names []string, db *sqlx.DB, translate func(*int, bool) *string) ([]QTCompoundResult, error) {
+func fetchQTStatusByCompound(
+	names []string, db *sqlx.DB, translate func(*int, bool) *string,
+) ([]QTCompoundResult, error) {
 	normalizedToInput := make(map[string]string, len(names))
 	for _, name := range names {
 		normalizedToInput[strings.ToLower(name)] = name
@@ -181,8 +183,8 @@ func fetchQTStatusByCompound(names []string, db *sqlx.DB, translate func(*int, b
 			KeySGR int    `db:"Key_SGR"`
 		}
 
-		if err := db.Select(&qtResults, qtQuery, qtArgs...); err != nil {
-			return nil, fmt.Errorf("error fetching QT categories for compounds: %w", err)
+		if selErr := db.Select(&qtResults, qtQuery, qtArgs...); selErr != nil {
+			return nil, fmt.Errorf("error fetching QT categories for compounds: %w", selErr)
 		}
 
 		for _, qtResult := range qtResults {

@@ -176,8 +176,8 @@ func fetchPznAdrs(pzns []string, db *sqlx.DB, ac *ADRController, lang string) ([
 
 	pznAdrs := make([]PznADR, 0, len(pzns))
 	for key, adr := range famMap {
-		pzns := famPznMap[key]
-		for _, pzn := range pzns {
+		famPzns := famPznMap[key]
+		for _, pzn := range famPzns {
 			pznAdrs = append(pznAdrs, PznADR{PZN: pzn, ADRs: adr})
 		}
 	}
@@ -251,7 +251,79 @@ func fetchAdrs(db *sqlx.DB, fams []uint64, lang string, ac *ADRController) ([]AD
 	return filtered, nil
 }
 
-func fetchCompoundAdrs(compounds []string, db *sqlx.DB, ac *ADRController, lang string, application string) ([]CompoundADRGroup, error) {
+func fetchCompoundAdrs(
+	compounds []string, db *sqlx.DB, ac *ADRController, lang string, application string,
+) ([]CompoundADRGroup, error) {
+	rows, err := fetchCompoundRows(db, compounds)
+	if err != nil {
+		return nil, err
+	}
+
+	rowsByInput := groupCompoundRowsByInput(compounds, rows)
+	candidateFAMs := make([]uint64, 0, len(rows))
+	seenCandidateFAMs := make(map[uint64]struct{}, len(rows))
+	for _, row := range rows {
+		if _, ok := seenCandidateFAMs[row.KeyFAM]; ok {
+			continue
+		}
+		seenCandidateFAMs[row.KeyFAM] = struct{}{}
+		candidateFAMs = append(candidateFAMs, row.KeyFAM)
+	}
+
+	famPznMap, err := fetchRepresentativePZNsByFAM(db, candidateFAMs)
+	if err != nil {
+		return nil, err
+	}
+
+	groupedItems := make([]CompoundADRGroup, 0, len(compounds))
+	allSelectedFAMs := make([]uint64, 0)
+	seenSelectedFAMs := make(map[uint64]struct{})
+
+	for _, input := range compounds {
+		items, selectedFAMs := selectRepresentativeCompoundItems(rowsByInput[input], famPznMap)
+		groupedItems = append(groupedItems, CompoundADRGroup{
+			Input: input,
+			Items: filterCompoundADRItems(items, application),
+		})
+
+		for _, fam := range selectedFAMs {
+			if _, ok := seenSelectedFAMs[fam]; ok {
+				continue
+			}
+			seenSelectedFAMs[fam] = struct{}{}
+			allSelectedFAMs = append(allSelectedFAMs, fam)
+		}
+	}
+
+	adrs, err := fetchAdrs(db, allSelectedFAMs, lang, ac)
+	if err != nil {
+		return nil, err
+	}
+
+	adrByFAM := make(map[uint64][]ADR, len(allSelectedFAMs))
+	for _, adr := range adrs {
+		adrByFAM[adr.KeyFAM] = append(adrByFAM[adr.KeyFAM], adr)
+	}
+
+	for i := range groupedItems {
+		for j := range groupedItems[i].Items {
+			groupedItems[i].Items[j].ADRs = adrByFAM[groupedItems[i].Items[j].KeyFAM]
+		}
+	}
+
+	return groupedItems, nil
+}
+
+func fetchCompoundRows(db *sqlx.DB, compounds []string) ([]struct {
+	CompoundName          string  `db:"compound_name"`
+	KeySTO                uint64  `db:"key_sto"`
+	KeyFAM                uint64  `db:"key_fam"`
+	KeyDAR                *string `db:"key_dar"`
+	FormulationName       *string `db:"formulation_name"`
+	ApplicationRouteCode  *int    `db:"applikationsweg_code"`
+	ApplicationRouteLabel string  `db:"applikationsweg_label"`
+	ApplicationGroup      string  `db:"application_group"`
+}, error) {
 	prefixes := make([]string, 0, len(compounds))
 	for _, compound := range compounds {
 		prefixes = append(prefixes, strings.ToLower(compound)+"%")
@@ -315,59 +387,7 @@ func fetchCompoundAdrs(compounds []string, db *sqlx.DB, ac *ADRController, lang 
 		return nil, fmt.Errorf("error fetching adrs for compound: %w", err)
 	}
 
-	rowsByInput := groupCompoundRowsByInput(compounds, rows)
-	candidateFAMs := make([]uint64, 0, len(rows))
-	seenCandidateFAMs := make(map[uint64]struct{}, len(rows))
-	for _, row := range rows {
-		if _, ok := seenCandidateFAMs[row.KeyFAM]; ok {
-			continue
-		}
-		seenCandidateFAMs[row.KeyFAM] = struct{}{}
-		candidateFAMs = append(candidateFAMs, row.KeyFAM)
-	}
-
-	famPznMap, err := fetchRepresentativePZNsByFAM(db, candidateFAMs)
-	if err != nil {
-		return nil, err
-	}
-
-	groupedItems := make([]CompoundADRGroup, 0, len(compounds))
-	allSelectedFAMs := make([]uint64, 0)
-	seenSelectedFAMs := make(map[uint64]struct{})
-
-	for _, input := range compounds {
-		items, selectedFAMs := selectRepresentativeCompoundItems(rowsByInput[input], famPznMap)
-		groupedItems = append(groupedItems, CompoundADRGroup{
-			Input: input,
-			Items: filterCompoundADRItems(items, application),
-		})
-
-		for _, fam := range selectedFAMs {
-			if _, ok := seenSelectedFAMs[fam]; ok {
-				continue
-			}
-			seenSelectedFAMs[fam] = struct{}{}
-			allSelectedFAMs = append(allSelectedFAMs, fam)
-		}
-	}
-
-	adrs, err := fetchAdrs(db, allSelectedFAMs, lang, ac)
-	if err != nil {
-		return nil, err
-	}
-
-	adrByFAM := make(map[uint64][]ADR, len(allSelectedFAMs))
-	for _, adr := range adrs {
-		adrByFAM[adr.KeyFAM] = append(adrByFAM[adr.KeyFAM], adr)
-	}
-
-	for i := range groupedItems {
-		for j := range groupedItems[i].Items {
-			groupedItems[i].Items[j].ADRs = adrByFAM[groupedItems[i].Items[j].KeyFAM]
-		}
-	}
-
-	return groupedItems, nil
+	return rows, nil
 }
 
 func selectRepresentativeCompoundItems(rows []struct {
@@ -405,7 +425,7 @@ func selectRepresentativeCompoundItems(rows []struct {
 			ADRs:         []ADR{},
 		})
 
-		if _, ok := selectedFamSeen[row.KeyFAM]; ok {
+		if _, famSeen := selectedFamSeen[row.KeyFAM]; famSeen {
 			continue
 		}
 		selectedFamSeen[row.KeyFAM] = struct{}{}
@@ -517,18 +537,4 @@ func splitAndTrim(values []string) []string {
 	}
 
 	return result
-}
-
-func applyADRLanguage(queryBuilder squirrel.SelectBuilder, lang string) squirrel.SelectBuilder {
-	langKey := 2 // english
-	if lang != "english" {
-		langKey = 1
-	}
-
-	queryBuilder = queryBuilder.Where(squirrel.Eq{"Sprache": langKey})
-	if lang == "german-simple" {
-		queryBuilder = queryBuilder.Where(squirrel.Eq{"Vorzugsbezeichnung_L": 1})
-	}
-
-	return queryBuilder
 }

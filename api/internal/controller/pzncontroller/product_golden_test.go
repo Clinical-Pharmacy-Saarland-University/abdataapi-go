@@ -169,7 +169,7 @@ func TestGolden_GetProductSearch_Normal(t *testing.T) {
 	}
 
 	type searchEnvelope struct {
-		Status string                              `json:"status"`
+		Status string                             `json:"status"`
 		Data   []pzncontroller.ProductSearchGroup `json:"data"`
 	}
 	var got searchEnvelope
@@ -447,7 +447,7 @@ func TestGolden_GetProductList_Pagination(t *testing.T) {
 	}
 	// A single PZN on the page: with one distinct PZN the group is never
 	// flushed, so products ends up empty.
-	mock.ExpectQuery(goldenListProductsSQL[:len(goldenListProductsSQL)-len("IN (?,?)")]+"IN (?)").
+	mock.ExpectQuery(goldenListProductsSQL[:len(goldenListProductsSQL)-len("IN (?,?)")] + "IN (?)").
 		WithArgs("03041347").
 		WillReturnRows(sqlmock.NewRows(listCols).
 			AddRow("Aspirin", "B01AC06", "03041347", "S1", nil, nil, nil, "Acetylsalicylsaeure"))
@@ -460,8 +460,8 @@ func TestGolden_GetProductList_Pagination(t *testing.T) {
 
 	var got struct {
 		Data struct {
-			Pages    int             `json:"pages"`
-			Page     int             `json:"page"`
+			Pages    int               `json:"pages"`
+			Page     int               `json:"page"`
 			Products []json.RawMessage `json:"products"`
 		} `json:"data"`
 	}
@@ -606,7 +606,7 @@ func TestGolden_GetProductInfo_Normal(t *testing.T) {
 	// wrapper struct is declared but NOT used here), so handle.Success serializes
 	// data as a JSON array of product-info objects, not {"product_info": [...]}.
 	type infoEnvelope struct {
-		Status string                        `json:"status"`
+		Status string                      `json:"status"`
 		Data   []pzncontroller.ProductInfo `json:"data"`
 	}
 	var got infoEnvelope

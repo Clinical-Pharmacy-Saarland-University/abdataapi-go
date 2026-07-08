@@ -250,11 +250,13 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 // @Router			/interactions/compounds [post]
 func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	type Query struct {
-		ID           string   `json:"id" binding:"required" example:"1"`                          // ID of the query
-		Compounds    []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
-		FetchDoses   bool     `json:"doses" binding:"omitempty" example:"true"`                   // Fetch dose/formulation information
-		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`                 // Detailed interaction descriptions
-		FetchText    bool     `json:"text" binding:"omitempty" example:"true"`                    // Fetch interaction text
+		ID        string   `json:"id" binding:"required" example:"1"`                          // ID of the query
+		Compounds []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
+		// FetchDoses fetches dose/formulation information.
+		FetchDoses bool `json:"doses" binding:"omitempty" example:"true"`
+		// DetailedDesc enables detailed interaction descriptions.
+		DetailedDesc bool `json:"details" binding:"omitempty" example:"true"`
+		FetchText    bool `json:"text" binding:"omitempty" example:"true"` // Fetch interaction text
 	} //	@name	CompoundInteractionPostQuery
 	queries := []Query{}
 
@@ -298,7 +300,9 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
-			result, err := fetchCompoundInteractions(query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc, query.FetchText)
+			result, err := fetchCompoundInteractions(
+				query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc, query.FetchText,
+			)
 			results[idx] = BatchResult{query.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
@@ -437,7 +441,8 @@ func uniqueInteractions[T any](interactions []T) []T {
 	return unique
 }
 
-func fetchCompoundInteractions( //nolint:gocognit // splitting up this function would make it less readable
+//nolint:funlen,gocognit // sequential fetch/map/dose/text steps read best kept together; splitting hurts clarity.
+func fetchCompoundInteractions(
 	compounds []string,
 	db *sqlx.DB,
 	ic *InteractionController,
@@ -507,9 +512,9 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 	}
 
 	if fetchText {
-		textByInt, err := fetchInteractionTexts(db, dbInteractions)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching interaction text: %w", err)
+		textByInt, txtErr := fetchInteractionTexts(db, dbInteractions)
+		if txtErr != nil {
+			return nil, fmt.Errorf("error fetching interaction text: %w", txtErr)
 		}
 		for i, interaction := range dbInteractions {
 			if text, ok := textByInt[interaction.KeyINT]; ok {
@@ -619,9 +624,9 @@ func fetchPznInteractions(
 	results := mapCompoundInteracions(dbInteractions, famPznMap, ic, detailedDesc)
 
 	if fetchText {
-		textByInt, err := fetchInteractionTexts(db, dbInteractions)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching interaction text: %w", err)
+		textByInt, txtErr := fetchInteractionTexts(db, dbInteractions)
+		if txtErr != nil {
+			return nil, fmt.Errorf("error fetching interaction text: %w", txtErr)
 		}
 		for i := range results {
 			if text, ok := textByInt[results[i].KeyINT]; ok {
@@ -777,7 +782,7 @@ func fetchInteractionTexts[T interface {
 		Text      string `db:"Text"`
 	}
 	if err := db.Select(&rows, query, args...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error fetching interaction texts: %w", err)
 	}
 
 	for _, row := range rows {

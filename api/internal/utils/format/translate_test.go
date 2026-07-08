@@ -59,9 +59,7 @@ func TestTranslators_KnownCodes(t *testing.T) {
 			name:       "QTCategory",
 			translator: format.NewQTCategoryTranslator(),
 			cases: []translatorCase{
-				//nolint:misspell // "Torsade de pointes" is a medical term, not a typo
 				{10079780, "known risk", "Known risk for Torsade de pointes according to crediblemeds.org"},
-				//nolint:misspell // "Torsade de pointes" is a medical term, not a typo
 				{10079782, "conditional risk", "Conditional risk for Torsade de pointes according to crediblemeds.org"},
 			},
 		},

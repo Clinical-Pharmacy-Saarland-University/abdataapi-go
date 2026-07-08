@@ -165,8 +165,8 @@ func fetchPriscusStatusByCompound(compounds []string, db *sqlx.DB) ([]PriscusCom
 			KeySTO uint64 `db:"Key_STO"`
 		}
 
-		if err := db.Select(&results, query, args...); err != nil {
-			return nil, fmt.Errorf("error fetching priscus status for compounds: %w", err)
+		if selErr := db.Select(&results, query, args...); selErr != nil {
+			return nil, fmt.Errorf("error fetching priscus status for compounds: %w", selErr)
 		}
 
 		for _, result := range results {

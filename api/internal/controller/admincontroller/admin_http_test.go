@@ -381,9 +381,9 @@ func TestGetUsers_All(t *testing.T) {
 	var env struct {
 		Status string `json:"status"`
 		Data   []struct {
-			Email      string `json:"email"`
-			Role       string `json:"role"`
-			PasswordSet bool  `json:"password_set"`
+			Email       string `json:"email"`
+			Role        string `json:"role"`
+			PasswordSet bool   `json:"password_set"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(w.Body.Bytes(), &env); err != nil {

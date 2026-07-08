@@ -13,7 +13,6 @@ import (
 )
 
 func FamToPZN(db *sqlx.DB, pzns []string) (map[uint64][]string, error) {
-	//n := len(pzns)
 	queryBuilder := squirrel.Select("PZN", "Key_FAM").From("PAE_DB").Where(squirrel.Eq{"PZN": pzns})
 	query, args, _ := queryBuilder.ToSql()
 
