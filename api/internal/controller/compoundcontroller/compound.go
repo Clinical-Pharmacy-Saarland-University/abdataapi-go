@@ -64,24 +64,34 @@ type CompoundSelectionQuery struct {
 
 // @Summary		Get compounds by name
 // @Description	Retrieves compounds by name and includes all related compounds sharing the same identifier.
+// @Description
+// @Description	The `names` parameter accepts the list in two formats:
+// @Description	1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+// @Description	Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+// @Description	2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+// @Description	This form is still supported but cannot represent names that contain a comma.
+// @Description
+// @Description	A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+// @Description	valid here, a lone name containing a comma sent as one value is **silently split** and returns
+// @Description	HTTP 200 with empty/incorrect matches (no error). Send such a name via the repeated form together
+// @Description	with at least one other value so the comma is preserved.
 // @Tags			compounds
 // @Accept			json
 // @Produce		json
-// @Param			names	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
-// @Success		200		{array}	object	"Successful response"
+// @Param			names	query	[]string	true	"Compound names, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"Metoprolol,Aspirin"
+// @Success		200		{array}	object		"Successful response"
 // @Failure		400		"Invalid request format or too many names provided"
 // @Failure		500		"Internal server error"
 // @Router			/compounds/names [get]
 func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
-	// Extract query parameters
-	namesParam := c.Query("names")
-	if namesParam == "" {
+	// Accept the list as repeated `names` parameters (verbatim) or a single
+	// comma-joined value (legacy), so names containing commas survive intact.
+	names := handle.QueryList(c, "names")
+	if handle.IsEmptyList(names) {
 		handle.BadRequestError(c, "Missing required parameter: names")
 		return
 	}
 
-	// Convert comma-separated values into a slice
-	names := strings.Split(namesParam, ",")
 	if len(names) > cc.Limits.BatchQueries {
 		handle.BadRequestError(c, fmt.Sprintf("Too many names provided. Maximum is %d", cc.Limits.BatchQueries))
 		return
@@ -178,24 +188,34 @@ func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string, db 
 
 // @Summary		Get guidelines by drug name
 // @Description	Retrieves guidelines by drug name and includes all related synonyms for the drug.
+// @Description
+// @Description	The `names` parameter accepts the list in two formats:
+// @Description	1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+// @Description	Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+// @Description	2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+// @Description	This form is still supported but cannot represent names that contain a comma.
+// @Description
+// @Description	A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+// @Description	valid here, a lone name containing a comma sent as one value is **silently split** and returns
+// @Description	HTTP 200 with empty/incorrect results (no error). Send such a name via the repeated form together
+// @Description	with at least one other value so the comma is preserved.
 // @Tags			pharmgkb
 // @Accept			json
 // @Produce		json
-// @Param			names	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
-// @Success		200		{array}	object	"Successful response"
+// @Param			names	query	[]string	true	"Compound names, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"Metoprolol,Aspirin"
+// @Success		200		{array}	object		"Successful response"
 // @Failure		400		"Invalid request format or too many names provided"
 // @Failure		500		"Internal server error"
 // @Router			/compounds/guidelines [get]
 func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
-	// Extract query parameters
-	namesParam := c.Query("names")
-	if namesParam == "" {
+	// Accept the list as repeated `names` parameters (verbatim) or a single
+	// comma-joined value (legacy), so names containing commas survive intact.
+	names := handle.QueryList(c, "names")
+	if handle.IsEmptyList(names) {
 		handle.BadRequestError(c, "Missing required parameter: names")
 		return
 	}
 
-	// Convert comma-separated values into a slice
-	names := strings.Split(namesParam, ",")
 	if len(names) > cc.Limits.BatchQueries {
 		handle.BadRequestError(c, fmt.Sprintf("Too many names provided. Maximum is %d", cc.Limits.BatchQueries))
 		return

@@ -76,21 +76,16 @@ func (qc *QTController) GetQTStatus(c *gin.Context) {
 
 // @Summary		List QT status for compounds
 // @Description	Get QT status for one or more compound names. Matches are grouped like the compound search endpoint and include all related compounds sharing the same identifier.
+// @Description	Provide the list as repeated params (preferred, preserves names containing commas) or as a single legacy comma-joined value.
 // @Tags			QT
 // @Produce		json
-// @Param			compounds	query	string				true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
+// @Param			compounds	query	[]string			true	"Compound names (e.g., Metoprolol,Aspirin)"	collectionFormat(multi)
 // @Success		200			{array}	QTCompoundResult	"List of input compounds with QT status"
 // @Failure		400			"Bad request (e.g. missing names or too many names)"
 // @Failure		500			"Internal server error"
 // @Router			/qt/compounds [get]
 func (qc *QTController) GetQTStatusByCompound(c *gin.Context) {
-	compoundsParam := c.Query("compounds")
-	if compoundsParam == "" {
-		handle.BadRequestError(c, "Missing required parameter: compounds")
-		return
-	}
-
-	names := splitAndTrim(compoundsParam)
+	names := splitAndTrim(handle.NormalizeList(c.QueryArray("compounds")))
 	if len(names) == 0 {
 		handle.BadRequestError(c, "Missing required parameter: compounds")
 		return
@@ -223,13 +218,12 @@ func fetchQTStatusByCompound(names []string, db *sqlx.DB, translate func(*int, b
 	return results, nil
 }
 
-func splitAndTrim(raw string) []string {
-	parts := strings.Split(raw, ",")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			result = append(result, part)
+func splitAndTrim(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			result = append(result, value)
 		}
 	}
 

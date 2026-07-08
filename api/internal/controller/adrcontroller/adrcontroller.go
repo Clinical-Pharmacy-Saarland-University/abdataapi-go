@@ -75,9 +75,10 @@ func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 // @Description	Valid values are `english`, `german`, and `german-simple`.
 // @Description	The default language is `english`.
 // @Description	`german-simple` returns the simplified German ADR description.
+// @Description	The `compound` parameter accepts repeated parameters (preferred, preserves commas) or a single comma-joined value.
 // @Tags			Adverse Drug Reactions
 // @Produce		json
-// @Param			compound	query	string				true	"Comma-separated compound name search terms"	example:"metformin,metoprolol"
+// @Param			compound	query	[]string			true	"Compound name search terms, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"metformin,metoprolol"
 // @Param			lang		query	string				false	"Language for ADR names (default: english)"		Enums(english,german,german-simple)
 // @Param			application	query	string				false	"Application filter (default: peroral)"			Enums(extern,invasive,peroral,all)
 // @Success		200			{array}	CompoundADRGroup	"Matching compound/formulation ADRs grouped by input"
@@ -86,9 +87,9 @@ func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 // @Router			/adrs/compounds [get]
 func (ac *ADRController) GetAdrsForCompound(c *gin.Context) {
 	var query = struct {
-		Compound    string `form:"compound" binding:"required"`
-		Language    string `form:"lang" binding:"omitempty,oneof=english german german-simple"`
-		Application string `form:"application" binding:"omitempty,oneof=extern invasive peroral all"`
+		Compound    []string `form:"compound"`
+		Language    string   `form:"lang" binding:"omitempty,oneof=english german german-simple"`
+		Application string   `form:"application" binding:"omitempty,oneof=extern invasive peroral all"`
 	}{
 		Language:    "english",
 		Application: "peroral",
@@ -98,13 +99,7 @@ func (ac *ADRController) GetAdrsForCompound(c *gin.Context) {
 		return
 	}
 
-	compound := strings.TrimSpace(query.Compound)
-	if compound == "" {
-		handle.BadRequestError(c, "Missing required parameter: compound")
-		return
-	}
-
-	compounds := splitAndTrim(compound)
+	compounds := splitAndTrim(handle.NormalizeList(query.Compound))
 	if len(compounds) == 0 {
 		handle.BadRequestError(c, "Missing required parameter: compound")
 		return
@@ -512,13 +507,12 @@ func groupCompoundRowsByInput(compounds []string, rows []struct {
 	return grouped
 }
 
-func splitAndTrim(raw string) []string {
-	parts := strings.Split(raw, ",")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			result = append(result, part)
+func splitAndTrim(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			result = append(result, value)
 		}
 	}
 
