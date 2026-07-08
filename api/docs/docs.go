@@ -1845,12 +1845,12 @@ const docTemplate = `{
                     ]
                 },
                 "details": {
-                    "description": "Detailed interaction descriptions",
+                    "description": "DetailedDesc enables detailed interaction descriptions.",
                     "type": "boolean",
                     "example": true
                 },
                 "doses": {
-                    "description": "Fetch dose/formulation information",
+                    "description": "FetchDoses fetches dose/formulation information.",
                     "type": "boolean",
                     "example": true
                 },

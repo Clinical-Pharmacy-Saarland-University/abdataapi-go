@@ -122,11 +122,11 @@ definitions:
           type: string
         type: array
       details:
-        description: Detailed interaction descriptions
+        description: DetailedDesc enables detailed interaction descriptions.
         example: true
         type: boolean
       doses:
-        description: Fetch dose/formulation information
+        description: FetchDoses fetches dose/formulation information.
         example: true
         type: boolean
       id:

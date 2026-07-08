@@ -4,23 +4,32 @@
 
 \*\*The API is currently under active development and not yet ready for production use.
 
-This is an implementation of the ClinPharm ABDA API. The API is a RESTful API that provides access to evaluations using the [ABDA database](https://abdata.de/). The API is implemented in [Go](https://go.dev/) and uses the [Gin](https://github.com/gin-gonic/gin) framework. 2. Adverse Drug Reaction (ADR) evaluations 3. Priscus List evaluations 4. Various drug-related information
+This is an implementation of the ClinPharm ABDA API. The API is a RESTful API that provides access to evaluations using the [ABDA database](https://abdata.de/). It is implemented in [Go](https://go.dev/) and uses the [Gin](https://github.com/gin-gonic/gin) framework. It provides:
 
-## Docker Image
+1. Drug-drug interaction (DDI) evaluations
+2. Adverse Drug Reaction (ADR) evaluations
+3. Priscus list evaluations
+4. QT-prolongation evaluations
+5. Product / PZN information and product search
+6. Compound name resolution and guideline (PharmGKB) lookups
 
-There are two options to build/obtain a Docker image of the API:
+Interactive API documentation is served via Swagger at `/swagger/index.html`.
+
+## Container Image
+
+The image is OCI-compliant and built/run with [Podman](https://podman.io/) (Docker works too — swap `podman` for `docker`). There are two options to build/obtain the image:
 
 ```bash
 # build
-docker build -t clinical-pharmacy-saarland-university/abdataapi-go:latest .
+podman build -t clinical-pharmacy-saarland-university/abdataapi-go:latest .
 
 # pull latest image
-docker pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
+podman pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
 ```
 
-## Running the Docker Container
+## Running the Container
 
-The docker container must be run with port mapping to port `3333` and needs the following environment variables to be set:
+The container must be run with port mapping to port `3333` and needs the following environment variables to be set:
 
 ```bash
 MYSQL_HOST=127.0.0.1
@@ -46,6 +55,80 @@ Log files will be written to `/logs` in the container.
 **On first run, the user tables will be migrated and seeded with the initial admin user as defined in the environment variables.**
 
 ## Details
+
+### List query parameters on compound endpoints
+
+Endpoints that take a **list of compound names** accept that list in two formats:
+
+| Endpoint | Parameter |
+|---|---|
+| `GET /interactions/compounds` | `compounds` |
+| `GET /compounds/names` | `names` |
+| `GET /compounds/guidelines` | `names` |
+| `GET /qt/compounds` | `compounds` |
+| `GET /priscus/compounds` | `compounds` |
+| `GET /adrs/compounds` | `compound` |
+
+1. **Repeated query parameter (preferred):**
+
+   ```
+   GET /interactions/compounds?compounds=Apixaban&compounds=Mirtazapin-0,5-Wasser&compounds=Bisoprolol
+   ```
+
+   Each occurrence of the parameter is treated as **one name, verbatim**. Sending a name
+   that contains a comma requires this form — ABDA canonical compound names can carry a
+   decimal-comma qualifier (e.g. `Mirtazapin-0,5-Wasser`), which is exactly what
+   `GET /compounds/names` returns.
+
+2. **Single comma-joined value (legacy, still supported):**
+
+   ```
+   GET /interactions/compounds?compounds=Aspirin,Paracetamol
+   ```
+
+   When the parameter appears **once**, its value is split on commas. This keeps older
+   clients working, but — because the delimiter and a data comma are indistinguishable
+   once URL-decoded — it **cannot represent a name that contains a comma**. Use the
+   repeated form for those names.
+
+> **Caveat — a single value is always split.** The two forms are indistinguishable on the
+> wire when only one value is present, so a comma inside a name survives only when at least
+> two values are sent. A lone comma-bearing value (e.g. `?names=Mirtazapin-0,5-Wasser` on
+> its own) is still split. On `GET /interactions/compounds` this never matters (it requires
+> ≥ 2 compounds); on the single-name-capable endpoints, send a comma-bearing name together
+> with at least one other value (repeated form) so the comma is preserved. Percent-encoding
+> the comma as `%2C` does **not** help: it decodes to the same character before splitting.
+
+The `POST /interactions/compounds` batch endpoint already takes a JSON array
+(`"compounds": [...]`) and is unaffected.
+
+> PZN list endpoints (`/interactions/pzns`, `/adrs/pzns`, `/priscus/pzns`, `/qt/pzns`,
+> `/product/info/pzns`, `/product/activecompounds/pzns`) remain comma-separated: PZNs are
+> 8-digit numbers and never contain a comma.
+
+### Testing
+
+```bash
+# unit tests (mocked DB via go-sqlmock; no database required)
+just test          # or: cd api && go test ./...
+
+# integration tests against a real ABDA database
+just test-integration   # or: cd api && go test -tags=integration ./...
+```
+
+Unit tests are hermetic and run anywhere. The `integration`-tagged tests hit a **real ABDA
+MySQL database** and are skipped unless connection details are provided. Supply them either
+as environment variables or via `api/.env.integration` (see [`api/.env.integration.example`](api/.env.integration.example)):
+
+```bash
+ABDA_TEST_HOST=127.0.0.1:3306   # e.g. an SSH-tunneled ABDA host
+ABDA_TEST_USER=...
+ABDA_TEST_PASSWORD=...
+ABDA_TEST_DB=abda
+```
+
+When `ABDA_TEST_HOST` is unset the integration suite skips cleanly, so the default
+`go test ./...` stays green without a database.
 
 ### Database
 
@@ -78,12 +161,13 @@ The configuration file is a YAML file with the following structure: [config.yml]
 
 ## Local Development
 
-1. You need Go Version 1.23 or higher.
+1. You need Go Version 1.25 or higher (the module targets `go 1.25`; the container builds on `golang:1.26`).
 2. You need to install [air](https://github.com/air-verse/air) and [swag](https://github.com/swaggo/swag) for development.
 3. Please install and use the [golangci-lint](https://golangci-lint.run/) linter.
 4. You might want to install [just](https://github.com/casey/just) as a task runner.
 
 Type `just` to see the available tasks.
 
-1. `just init` will install air, swag and golangci-lint (windows only) and copy the default `.env` file to `/api`
+1. `just init` will install air, swag, [gotestsum](https://github.com/gotestyourself/gotestsum) and golangci-lint (windows only) and copy the default `.env` file to `/api`
 2. `just run` will start the API with air and swag init/fmt in debug mode.
+3. `just test` / `just test-integration` run the unit / integration test suites.
