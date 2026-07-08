@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sort"
 	"strings"
 	"testing"
 
@@ -72,6 +73,9 @@ func resolveCanonicalNames(t *testing.T, db *sqlx.DB, base string) []string {
 			}
 		}
 	}
+	// Sort for deterministic selection: the DB returns rows in no guaranteed order, and
+	// callers pick "the first name containing a comma", which must not vary between runs.
+	sort.Strings(names)
 	return names
 }
 
@@ -147,14 +151,19 @@ func TestInteractionsAcceptCommaBearingCompound(t *testing.T) {
 		t.Fatalf("expected 200 for two resolvable compounds, got %d: %s", w.Code, w.Body.String())
 	}
 
-	// Contrast: a single comma-joined value splits the comma-bearing name -> 404.
+	// Contrast: a single comma-joined value splits the comma-bearing name into fragments, so
+	// the request cannot reconstruct it and fails with a client (4xx) error. The exact code
+	// depends on the fragments: usually 404 (fragments do not resolve), but a name with a
+	// repeated numeric locant (e.g. a "2,2-" motif) splits into duplicate tokens and is
+	// rejected as 400 "duplicate compounds provided". Either way the legacy single-value form
+	// cannot carry a comma-bearing name — that is the point being proven.
 	single := "compounds=" + url.QueryEscape(comma+","+partner)
 	req2 := httptest.NewRequest(http.MethodGet, "/interactions/compounds?"+single, nil)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
 
-	if w2.Code != http.StatusNotFound {
-		t.Errorf("legacy single comma-joined value carrying a comma-bearing name should 404, got %d: %s",
+	if w2.Code < 400 || w2.Code >= 500 {
+		t.Errorf("legacy single comma-joined value carrying a comma-bearing name must fail with a 4xx, got %d: %s",
 			w2.Code, w2.Body.String())
 	}
 }
