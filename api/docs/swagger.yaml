@@ -750,6 +750,38 @@ info:
   contact: {}
 paths:
   /admin/users:
+    get:
+      description: |-
+        __Admin role required__
+        List all users for the API.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User created
+          schema:
+            $ref: '#/definitions/JSendSuccess-map_string_string'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "403":
+          description: Non-admin user
+          schema:
+            $ref: '#/definitions/JSendFailure-ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/JSendError'
+      security:
+      - Bearer: []
+      summary: Get all users
+      tags:
+      - Admin
     post:
       description: |-
         __Admin role required__
@@ -877,18 +909,76 @@ paths:
       summary: List ADRs for PZNs
       tags:
       - Adverse Drug Reactions
+  /compounds/guidelines:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Retrieves guidelines by drug name and includes all related synonyms for the drug.
+
+        The `names` parameter accepts the list in two formats:
+        1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+        Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+        2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+        This form is still supported but cannot represent names that contain a comma.
+
+        A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+        valid here, a lone name containing a comma sent as one value is **silently split** and returns
+        HTTP 200 with empty/incorrect results (no error). Send such a name via the repeated form together
+        with at least one other value so the comma is preserved.
+      parameters:
+      - collectionFormat: multi
+        description: Compound names, as repeated parameters (preferred) or a single
+          comma-joined value
+        in: query
+        items:
+          type: string
+        name: names
+        required: true
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successful response
+          schema:
+            items:
+              type: object
+            type: array
+        "400":
+          description: Invalid request format or too many names provided
+        "500":
+          description: Internal server error
+      summary: Get guidelines by drug name
+      tags:
+      - pharmgkb
   /compounds/names:
     get:
       consumes:
       - application/json
-      description: Retrieves compounds by name and includes all related compounds
-        sharing the same identifier.
+      description: |-
+        Retrieves compounds by name and includes all related compounds sharing the same identifier.
+
+        The `names` parameter accepts the list in two formats:
+        1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+        Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+        2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+        This form is still supported but cannot represent names that contain a comma.
+
+        A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+        valid here, a lone name containing a comma sent as one value is **silently split** and returns
+        HTTP 200 with empty/incorrect matches (no error). Send such a name via the repeated form together
+        with at least one other value so the comma is preserved.
       parameters:
-      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+      - collectionFormat: multi
+        description: Compound names, as repeated parameters (preferred) or a single
+          comma-joined value
         in: query
+        items:
+          type: string
         name: names
         required: true
-        type: string
+        type: array
       produces:
       - application/json
       responses:
@@ -944,12 +1034,26 @@ paths:
         If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
         If the `doses` query parameter is set to `true`, the interaction will contain the relevant
         doses/formulations of the compounds that are involved in the interaction.
+        The `compounds` parameter accepts the list in two formats:
+        1. **Repeated parameter (preferred):** `?compounds=Apixaban&compounds=Mirtazapin-0,5-Wasser&compounds=Bisoprolol`.
+        Each occurrence is treated as one compound verbatim, so names that contain a comma
+        (e.g. the ABDA canonical name `Mirtazapin-0,5-Wasser`) are preserved.
+        2. **Single comma-joined value (legacy):** `?compounds=Aspirin,Paracetamol`, split on commas.
+        This form is still supported but cannot represent compound names that contain a comma.
+        Note: a value is only ever split when the parameter is supplied **once**; the comma inside a
+        name is therefore preserved only when at least two values are sent via the repeated form.
+        Because this endpoint requires at least two compounds, always use the repeated form when any
+        compound name contains a comma.
       parameters:
-      - description: Comma separated string of compounds
+      - collectionFormat: multi
+        description: Compounds, as repeated parameters (preferred) or a single comma-joined
+          value
         in: query
-        name: pzns
+        items:
+          type: string
+        name: compounds
         required: true
-        type: string
+        type: array
       - description: Fetch doses
         in: query
         name: doses
@@ -1028,7 +1132,7 @@ paths:
           schema:
             $ref: '#/definitions/JSendSuccess-array_CompoundBatchResult'
         "400":
-          description: Too many IDs or duplicate IDs
+          description: Too many IDs, duplicate IDs, or malformed body
           schema:
             $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":
@@ -1138,7 +1242,7 @@ paths:
           schema:
             $ref: '#/definitions/JSendSuccess-array_PZNBatchResult'
         "400":
-          description: Too many IDs or duplicate IDs
+          description: Too many IDs, duplicate IDs, or malformed body
           schema:
             $ref: '#/definitions/JSendFailure-ErrorResponse'
         "401":

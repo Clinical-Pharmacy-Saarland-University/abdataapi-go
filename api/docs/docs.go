@@ -16,6 +16,53 @@ const docTemplate = `{
     "basePath": "{{.BasePath}}",
     "paths": {
         "/admin/users": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "__Admin role required__\nList all users for the API.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get all users",
+                "responses": {
+                    "200": {
+                        "description": "User created",
+                        "schema": {
+                            "$ref": "#/definitions/JSendSuccess-map_string_string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Non-admin user",
+                        "schema": {
+                            "$ref": "#/definitions/JSendFailure-ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/JSendError"
+                        }
+                    }
+                }
+            },
             "post": {
                 "security": [
                     {
@@ -196,9 +243,54 @@ const docTemplate = `{
                 }
             }
         },
+        "/compounds/guidelines": {
+            "get": {
+                "description": "Retrieves guidelines by drug name and includes all related synonyms for the drug.\n\nThe ` + "`" + `names` + "`" + ` parameter accepts the list in two formats:\n1. **Repeated parameter (preferred):** ` + "`" + `?names=Metoprolol\u0026names=Mirtazapin-0,5-Wasser` + "`" + `.\nEach occurrence is treated as one name verbatim, so names that contain a comma are preserved.\n2. **Single comma-joined value (legacy):** ` + "`" + `?names=Metoprolol,Aspirin` + "`" + `, split on commas.\nThis form is still supported but cannot represent names that contain a comma.\n\nA value is only split when the parameter is supplied **once**. Because a single-name lookup is\nvalid here, a lone name containing a comma sent as one value is **silently split** and returns\nHTTP 200 with empty/incorrect results (no error). Send such a name via the repeated form together\nwith at least one other value so the comma is preserved.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pharmgkb"
+                ],
+                "summary": "Get guidelines by drug name",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Compound names, as repeated parameters (preferred) or a single comma-joined value",
+                        "name": "names",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request format or too many names provided"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
         "/compounds/names": {
             "get": {
-                "description": "Retrieves compounds by name and includes all related compounds sharing the same identifier.",
+                "description": "Retrieves compounds by name and includes all related compounds sharing the same identifier.\n\nThe ` + "`" + `names` + "`" + ` parameter accepts the list in two formats:\n1. **Repeated parameter (preferred):** ` + "`" + `?names=Metoprolol\u0026names=Mirtazapin-0,5-Wasser` + "`" + `.\nEach occurrence is treated as one name verbatim, so names that contain a comma are preserved.\n2. **Single comma-joined value (legacy):** ` + "`" + `?names=Metoprolol,Aspirin` + "`" + `, split on commas.\nThis form is still supported but cannot represent names that contain a comma.\n\nA value is only split when the parameter is supplied **once**. Because a single-name lookup is\nvalid here, a lone name containing a comma sent as one value is **silently split** and returns\nHTTP 200 with empty/incorrect matches (no error). Send such a name via the repeated form together\nwith at least one other value so the comma is preserved.",
                 "consumes": [
                     "application/json"
                 ],
@@ -211,8 +303,12 @@ const docTemplate = `{
                 "summary": "Get compounds by name",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Comma-separated compound names (e.g., Metoprolol,Aspirin)",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Compound names, as repeated parameters (preferred) or a single comma-joined value",
                         "name": "names",
                         "in": "query",
                         "required": true
@@ -281,7 +377,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "The result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one compounds if the same interaction\nis observed between multiple compounds. This can be the case if the same compound is marketed\nunder different names or derivates are considered.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIf the ` + "`" + `doses` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction will contain the relevant\ndoses/formulations of the compounds that are involved in the interaction.",
+                "description": "The result will be an array of drug-drug interactions between the provided compounds.\nEach interaction will contain the plausibility, relevance, frequency, credibility,\nand direction of the interaction.\nThe direction of the interaction describes the relationship between the victims (left)\nand the perpetrators (right).\nThe left size and right side of the interaction can be more than one compounds if the same interaction\nis observed between multiple compounds. This can be the case if the same compound is marketed\nunder different names or derivates are considered.\nIf the ` + "`" + `details` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction descriptions will be more detailed.\nIf the ` + "`" + `doses` + "`" + ` query parameter is set to ` + "`" + `true` + "`" + `, the interaction will contain the relevant\ndoses/formulations of the compounds that are involved in the interaction.\nThe ` + "`" + `compounds` + "`" + ` parameter accepts the list in two formats:\n1. **Repeated parameter (preferred):** ` + "`" + `?compounds=Apixaban\u0026compounds=Mirtazapin-0,5-Wasser\u0026compounds=Bisoprolol` + "`" + `.\nEach occurrence is treated as one compound verbatim, so names that contain a comma\n(e.g. the ABDA canonical name ` + "`" + `Mirtazapin-0,5-Wasser` + "`" + `) are preserved.\n2. **Single comma-joined value (legacy):** ` + "`" + `?compounds=Aspirin,Paracetamol` + "`" + `, split on commas.\nThis form is still supported but cannot represent compound names that contain a comma.\nNote: a value is only ever split when the parameter is supplied **once**; the comma inside a\nname is therefore preserved only when at least two values are sent via the repeated form.\nBecause this endpoint requires at least two compounds, always use the repeated form when any\ncompound name contains a comma.",
                 "produces": [
                     "application/json"
                 ],
@@ -291,9 +387,13 @@ const docTemplate = `{
                 "summary": "Query drug-drug interactions between compounds",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Comma separated string of compounds",
-                        "name": "pzns",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Compounds, as repeated parameters (preferred) or a single comma-joined value",
+                        "name": "compounds",
                         "in": "query",
                         "required": true
                     },
@@ -391,7 +491,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Too many IDs or duplicate IDs",
+                        "description": "Too many IDs, duplicate IDs, or malformed body",
                         "schema": {
                             "$ref": "#/definitions/JSendFailure-ErrorResponse"
                         }
@@ -528,7 +628,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Too many IDs or duplicate IDs",
+                        "description": "Too many IDs, duplicate IDs, or malformed body",
                         "schema": {
                             "$ref": "#/definitions/JSendFailure-ErrorResponse"
                         }

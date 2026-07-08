@@ -79,28 +79,38 @@ type ValidationError struct {
 } //	@name	ValidationError
 
 func ValidationErrors(verr validator.ValidationErrors, obj interface{}) []ValidationError {
-	var errors []ValidationError
+	var errs []ValidationError
 
-	for _, fe := range verr {
-		// Get the JSON tag or query tag from the struct field
-		field, _ := reflect.TypeOf(obj).Elem().FieldByName(fe.StructField())
-		fieldTag := field.Tag.Get("json")
-		if fieldTag == "" {
-			fieldTag = field.Tag.Get("form") // For query binding
-		}
-		if fieldTag == "" {
-			fieldTag = fe.StructField() // Fallback to struct field name
-		}
-
-		err := fe.ActualTag()
-		if fe.Param() != "" {
-			err = fmt.Sprintf("%s=%s", err, fe.Param())
-		}
-
-		errors = append(errors, ValidationError{Field: fieldTag, Reason: err})
+	// Resolve the underlying struct type, unwrapping pointers and slice/array wrappers so
+	// this also works for batch endpoints that bind a []Struct body.
+	structType := reflect.TypeOf(obj)
+	for structType != nil && (structType.Kind() == reflect.Pointer ||
+		structType.Kind() == reflect.Slice || structType.Kind() == reflect.Array) {
+		structType = structType.Elem()
 	}
 
-	return errors
+	for _, fe := range verr {
+		// Prefer the JSON (or form) tag from the struct field; fall back to the field name.
+		fieldTag := fe.StructField()
+		if structType != nil && structType.Kind() == reflect.Struct {
+			if field, ok := structType.FieldByName(fe.StructField()); ok {
+				if jsonTag := field.Tag.Get("json"); jsonTag != "" {
+					fieldTag = jsonTag
+				} else if formTag := field.Tag.Get("form"); formTag != "" {
+					fieldTag = formTag
+				}
+			}
+		}
+
+		reason := fe.ActualTag()
+		if fe.Param() != "" {
+			reason = fmt.Sprintf("%s=%s", reason, fe.Param())
+		}
+
+		errs = append(errs, ValidationError{Field: fieldTag, Reason: reason})
+	}
+
+	return errs
 }
 
 func BatchStatusCode(nTotal, nSuccess int) int {
