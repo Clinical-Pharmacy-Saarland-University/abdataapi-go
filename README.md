@@ -6,21 +6,21 @@
 
 This is an implementation of the ClinPharm ABDA API. The API is a RESTful API that provides access to evaluations using the [ABDA database](https://abdata.de/). The API is implemented in [Go](https://go.dev/) and uses the [Gin](https://github.com/gin-gonic/gin) framework. 2. Adverse Drug Reaction (ADR) evaluations 3. Priscus List evaluations 4. Various drug-related information
 
-## Docker Image
+## Container Image
 
-There are two options to build/obtain a Docker image of the API:
+There are two options to build/obtain a container image of the API (built and run with [Podman](https://podman.io/)):
 
 ```bash
 # build
-docker build -t clinical-pharmacy-saarland-university/abdataapi-go:latest .
+podman build -t clinical-pharmacy-saarland-university/abdataapi-go:latest .
 
 # pull latest image
-docker pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
+podman pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
 ```
 
-## Running the Docker Container
+## Running the Container
 
-The docker container must be run with port mapping to port `3333` and needs the following environment variables to be set:
+The container must be run with port mapping to port `3333` and needs the following environment variables to be set:
 
 ```bash
 MYSQL_HOST=127.0.0.1
@@ -102,7 +102,7 @@ The `POST /interactions/compounds` batch endpoint already takes a JSON array
 
 You need a MySQL database with data from [ABDA](https://abdata.de/). The database is proprietary and not included in this or other repositories. If you have access to the ABDA database, you can use [https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db](https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db) to export the data to a MySQL database.
 
-### Running the API outside of Docker
+### Running the API outside of a container
 
 The API has the following command line options:
 

@@ -22,21 +22,21 @@ test *args:
 test-integration *args:
     @ cd api; if (Get-Command gotestsum -ErrorAction SilentlyContinue) { gotestsum --format testname -- -tags=integration ./... {{args}} } else { go test -tags=integration ./... {{args}} }
 
-# Creates a docker deployment image
+# Builds the container image with podman
 [group('deploy')]
 deploy-build:
-    @ docker build --no-cache . --tag ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
+    @ podman build --no-cache . --tag ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
 
 # Pulls the deployed image from the container registry
 [group('deploy')]
 deploy-pull:
-    @ docker pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
-    @ docker logout ghcr.io     
+    @ podman pull ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
+    @ podman logout ghcr.io
 
 # Runs the deployed image
 [group('deploy')]
 deploy-run port=port:
-    @ docker run -it --rm -p {{port}}:3333 --env-file .env --name abdata-api ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
+    @ podman run -it --rm -p {{port}}:3333 --env-file .env --name abdata-api ghcr.io/clinical-pharmacy-saarland-university/abdataapi-go:latest
 
 # Deletes feature branch after merging
 [group('git')]
