@@ -70,9 +70,10 @@ func (pc *PriscusController) GetPriscusStatus(c *gin.Context) {
 
 // @Summary		List Priscus status for compounds
 // @Description	Get Priscus status for one or more compound names.
+// @Description	Provide the list as repeated params (preferred, preserves names containing commas) or as a single legacy comma-joined value.
 // @Tags			Priscus
 // @Produce		json
-// @Param			compounds	query	string					true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
+// @Param			compounds	query	[]string				true	"Compound names (e.g., Metoprolol,Aspirin)"	collectionFormat(multi)
 // @Success		200			{array}	PriscusCompoundResult	"List of input compounds with Priscus status"
 // @Failure		400			"Bad request (e.g. missing compounds or too many names)"
 // @Failure		500			"Internal server error"
@@ -80,13 +81,7 @@ func (pc *PriscusController) GetPriscusStatus(c *gin.Context) {
 //
 // @Security		Bearer
 func (pc *PriscusController) GetPriscusStatusByCompound(c *gin.Context) {
-	compoundsParam := c.Query("compounds")
-	if compoundsParam == "" {
-		handle.BadRequestError(c, "Missing required parameter: compounds")
-		return
-	}
-
-	compounds := splitAndTrim(compoundsParam)
+	compounds := splitAndTrim(handle.NormalizeList(c.QueryArray("compounds")))
 	if len(compounds) == 0 {
 		handle.BadRequestError(c, "Missing required parameter: compounds")
 		return
@@ -170,8 +165,8 @@ func fetchPriscusStatusByCompound(compounds []string, db *sqlx.DB) ([]PriscusCom
 			KeySTO uint64 `db:"Key_STO"`
 		}
 
-		if err := db.Select(&results, query, args...); err != nil {
-			return nil, fmt.Errorf("error fetching priscus status for compounds: %w", err)
+		if selErr := db.Select(&results, query, args...); selErr != nil {
+			return nil, fmt.Errorf("error fetching priscus status for compounds: %w", selErr)
 		}
 
 		for _, result := range results {
@@ -197,13 +192,12 @@ func fetchPriscusStatusByCompound(compounds []string, db *sqlx.DB) ([]PriscusCom
 	return response, nil
 }
 
-func splitAndTrim(raw string) []string {
-	parts := strings.Split(raw, ",")
-	result := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			result = append(result, part)
+func splitAndTrim(values []string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			result = append(result, value)
 		}
 	}
 

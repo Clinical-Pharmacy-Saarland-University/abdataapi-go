@@ -273,14 +273,18 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 // @Router			/interactions/compounds [post]
 func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	type Query struct {
-		ID             string   `json:"id" binding:"required" example:"1"`                          // ID of the query
-		Compounds      []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
-		FetchDoses     bool     `json:"doses" binding:"omitempty" example:"true"`                   // Fetch dose/formulation information
-		DetailedDesc   bool     `json:"details" binding:"omitempty" example:"true"`                 // Detailed interaction descriptions
-		FetchText      bool     `json:"text" binding:"omitempty" example:"true"`                    // Fetch interaction text
-		Annotations    bool     `json:"annotations" binding:"omitempty" example:"true"`             // Fetch interaction annotation
-		AnnotationText bool     `json:"annotation_text" binding:"omitempty" example:"true"`         // Fetch annotation evidence text
-		Lang           string   `json:"lang" binding:"omitempty" example:"english"`                 // Annotation language
+		ID        string   `json:"id" binding:"required" example:"1"`                          // ID of the query
+		Compounds []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
+		// FetchDoses fetches dose/formulation information.
+		FetchDoses bool `json:"doses" binding:"omitempty" example:"true"`
+		// DetailedDesc enables detailed interaction descriptions.
+		DetailedDesc bool `json:"details" binding:"omitempty" example:"true"`
+		FetchText    bool `json:"text" binding:"omitempty" example:"true"` // Fetch interaction text
+		// Annotations fetches compact interaction annotation metadata.
+		Annotations bool `json:"annotations" binding:"omitempty" example:"true"`
+		// AnnotationText includes large annotation evidence keyword fields.
+		AnnotationText bool   `json:"annotation_text" binding:"omitempty" example:"true"`
+		Lang           string `json:"lang" binding:"omitempty" example:"english"` // Annotation language
 	} //	@name	CompoundInteractionPostQuery
 	queries := []Query{}
 
@@ -357,9 +361,21 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Description	If the `doses` query parameter is set to `true`, the interaction will contain the relevant
 // @Description	doses/formulations of the compounds that are involved in the interaction.
 //
+// @Description	The `compounds` parameter accepts the list in two formats:
+// @Description	1. **Repeated parameter (preferred):** `?compounds=Apixaban&compounds=Mirtazapin-0,5-Wasser&compounds=Bisoprolol`.
+// @Description	Each occurrence is treated as one compound verbatim, so names that contain a comma
+// @Description	(e.g. the ABDA canonical name `Mirtazapin-0,5-Wasser`) are preserved.
+// @Description	2. **Single comma-joined value (legacy):** `?compounds=Aspirin,Paracetamol`, split on commas.
+// @Description	This form is still supported but cannot represent compound names that contain a comma.
+//
+// @Description	Note: a value is only ever split when the parameter is supplied **once**; the comma inside a
+// @Description	name is therefore preserved only when at least two values are sent via the repeated form.
+// @Description	Because this endpoint requires at least two compounds, always use the repeated form when any
+// @Description	compound name contains a comma.
+//
 // @Tags			Drug-Drug Interactions
 // @Produce		json
-// @Param			compounds	query		string											true	"Comma separated string of compounds"		example:"Aspirin,Paracetamol"
+// @Param			compounds	query		[]string										true	"Compounds, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"Aspirin,Paracetamol"
 // @Param			doses		query		boolean											false	"Fetch doses"								default:"false"
 // @Param			details		query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
 // @Param			text		query		boolean											false	"Fetch interaction text"					default:"false"
@@ -378,13 +394,13 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Router			/interactions/compounds [get]
 func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 	type Query struct {
-		Compounds      string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`
-		FetchDose      bool   `form:"doses" binding:"omitempty" example:"true"`
-		DetailedDesc   bool   `form:"details" binding:"omitempty" example:"true"`
-		FetchText      bool   `form:"text" binding:"omitempty" example:"true"`
-		Annotations    bool   `form:"annotations" binding:"omitempty" example:"true"`
-		AnnotationText bool   `form:"annotation_text" binding:"omitempty" example:"true"`
-		Lang           string `form:"lang" binding:"omitempty" example:"english"`
+		Compounds      []string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`
+		FetchDose      bool     `form:"doses" binding:"omitempty" example:"true"`
+		DetailedDesc   bool     `form:"details" binding:"omitempty" example:"true"`
+		FetchText      bool     `form:"text" binding:"omitempty" example:"true"`
+		Annotations    bool     `form:"annotations" binding:"omitempty" example:"true"`
+		AnnotationText bool     `form:"annotation_text" binding:"omitempty" example:"true"`
+		Lang           string   `form:"lang" binding:"omitempty" example:"english"`
 	} //	@name	CompoundInteractionQuery
 
 	var query Query
@@ -392,7 +408,17 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 		return
 	}
 
-	compounds := strings.Split(query.Compounds, ",")
+	// A single value is treated as a legacy comma-joined list; repeated `compounds`
+	// parameters are used verbatim so names containing commas survive intact.
+	compounds := handle.NormalizeList(query.Compounds)
+
+	// Preserve the previous behavior for an empty `?compounds=` value: the old string
+	// binding failed the `required` tag and returned 422, whereas a []string binds it
+	// as [""] and would pass. Reject it here so the status code stays 422.
+	if handle.IsEmptyList(compounds) {
+		handle.ValidationError(c, []apierr.ValidationError{{Field: "compounds", Reason: "required"}})
+		return
+	}
 
 	result, err := fetchCompoundInteractions(compounds, ic.DB, ic, query.FetchDose, query.DetailedDesc, query.FetchText, query.Annotations, query.AnnotationText, query.Lang)
 	if err != nil {
@@ -448,7 +474,8 @@ func uniqueInteractions[T any](interactions []T) []T {
 	return unique
 }
 
-func fetchCompoundInteractions( //nolint:gocognit // splitting up this function would make it less readable
+//nolint:funlen,gocognit // sequential fetch/map/dose/text steps read best kept together; splitting hurts clarity.
+func fetchCompoundInteractions(
 	compounds []string,
 	db *sqlx.DB,
 	ic *InteractionController,
@@ -521,9 +548,9 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 	}
 
 	if fetchText {
-		textByInt, err := fetchInteractionTexts(db, dbInteractions)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching interaction text: %w", err)
+		textByInt, txtErr := fetchInteractionTexts(db, dbInteractions)
+		if txtErr != nil {
+			return nil, fmt.Errorf("error fetching interaction text: %w", txtErr)
 		}
 		for i, interaction := range dbInteractions {
 			if text, ok := textByInt[interaction.KeyINT]; ok {
@@ -649,9 +676,9 @@ func fetchPznInteractions(
 	results := mapCompoundInteracions(dbInteractions, famPznMap, ic, detailedDesc)
 
 	if fetchText {
-		textByInt, err := fetchInteractionTexts(db, dbInteractions)
-		if err != nil {
-			return nil, fmt.Errorf("error fetching interaction text: %w", err)
+		textByInt, txtErr := fetchInteractionTexts(db, dbInteractions)
+		if txtErr != nil {
+			return nil, fmt.Errorf("error fetching interaction text: %w", txtErr)
 		}
 		for i := range results {
 			if text, ok := textByInt[results[i].KeyINT]; ok {
@@ -819,7 +846,7 @@ func fetchInteractionTexts[T interface {
 		Text      string `db:"Text"`
 	}
 	if err := db.Select(&rows, query, args...); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error fetching interaction texts: %w", err)
 	}
 
 	for _, row := range rows {

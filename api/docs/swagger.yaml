@@ -134,11 +134,11 @@ definitions:
           type: string
         type: array
       details:
-        description: Detailed interaction descriptions
+        description: DetailedDesc enables detailed interaction descriptions.
         example: true
         type: boolean
       doses:
-        description: Fetch dose/formulation information
+        description: FetchDoses fetches dose/formulation information.
         example: true
         type: boolean
       id:
@@ -1056,12 +1056,17 @@ paths:
         Valid values are `english`, `german`, and `german-simple`.
         The default language is `english`.
         `german-simple` returns the simplified German ADR description.
+        The `compound` parameter accepts repeated parameters (preferred, preserves commas) or a single comma-joined value.
       parameters:
-      - description: Comma-separated compound name search terms
+      - collectionFormat: multi
+        description: Compound name search terms, as repeated parameters (preferred)
+          or a single comma-joined value
         in: query
+        items:
+          type: string
         name: compound
         required: true
-        type: string
+        type: array
       - description: 'Language for ADR names (default: english)'
         enum:
         - english
@@ -1137,14 +1142,29 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves guidelines by drug name and includes all related synonyms
-        for the drug.
+      description: |-
+        Retrieves guidelines by drug name and includes all related synonyms for the drug.
+
+        The `names` parameter accepts the list in two formats:
+        1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+        Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+        2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+        This form is still supported but cannot represent names that contain a comma.
+
+        A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+        valid here, a lone name containing a comma sent as one value is **silently split** and returns
+        HTTP 200 with empty/incorrect results (no error). Send such a name via the repeated form together
+        with at least one other value so the comma is preserved.
       parameters:
-      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+      - collectionFormat: multi
+        description: Compound names, as repeated parameters (preferred) or a single
+          comma-joined value
         in: query
+        items:
+          type: string
         name: names
         required: true
-        type: string
+        type: array
       produces:
       - application/json
       responses:
@@ -1165,14 +1185,29 @@ paths:
     get:
       consumes:
       - application/json
-      description: Retrieves compounds by name and includes all related compounds
-        sharing the same identifier.
+      description: |-
+        Retrieves compounds by name and includes all related compounds sharing the same identifier.
+
+        The `names` parameter accepts the list in two formats:
+        1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+        Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+        2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+        This form is still supported but cannot represent names that contain a comma.
+
+        A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+        valid here, a lone name containing a comma sent as one value is **silently split** and returns
+        HTTP 200 with empty/incorrect matches (no error). Send such a name via the repeated form together
+        with at least one other value so the comma is preserved.
       parameters:
-      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+      - collectionFormat: multi
+        description: Compound names, as repeated parameters (preferred) or a single
+          comma-joined value
         in: query
+        items:
+          type: string
         name: names
         required: true
-        type: string
+        type: array
       produces:
       - application/json
       responses:
@@ -1228,12 +1263,26 @@ paths:
         If the `details` query parameter is set to `true`, the interaction descriptions will be more detailed.
         If the `doses` query parameter is set to `true`, the interaction will contain the relevant
         doses/formulations of the compounds that are involved in the interaction.
+        The `compounds` parameter accepts the list in two formats:
+        1. **Repeated parameter (preferred):** `?compounds=Apixaban&compounds=Mirtazapin-0,5-Wasser&compounds=Bisoprolol`.
+        Each occurrence is treated as one compound verbatim, so names that contain a comma
+        (e.g. the ABDA canonical name `Mirtazapin-0,5-Wasser`) are preserved.
+        2. **Single comma-joined value (legacy):** `?compounds=Aspirin,Paracetamol`, split on commas.
+        This form is still supported but cannot represent compound names that contain a comma.
+        Note: a value is only ever split when the parameter is supplied **once**; the comma inside a
+        name is therefore preserved only when at least two values are sent via the repeated form.
+        Because this endpoint requires at least two compounds, always use the repeated form when any
+        compound name contains a comma.
       parameters:
-      - description: Comma separated string of compounds
+      - collectionFormat: multi
+        description: Compounds, as repeated parameters (preferred) or a single comma-joined
+          value
         in: query
+        items:
+          type: string
         name: compounds
         required: true
-        type: string
+        type: array
       - description: Fetch doses
         in: query
         name: doses
@@ -1476,13 +1525,18 @@ paths:
       - Drug-Drug Interactions
   /priscus/compounds:
     get:
-      description: Get Priscus status for one or more compound names.
+      description: |-
+        Get Priscus status for one or more compound names.
+        Provide the list as repeated params (preferred, preserves names containing commas) or as a single legacy comma-joined value.
       parameters:
-      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+      - collectionFormat: multi
+        description: Compound names (e.g., Metoprolol,Aspirin)
         in: query
+        items:
+          type: string
         name: compounds
         required: true
-        type: string
+        type: array
       produces:
       - application/json
       responses:
@@ -1666,15 +1720,18 @@ paths:
       - Product
   /qt/compounds:
     get:
-      description: Get QT status for one or more compound names. Matches are grouped
-        like the compound search endpoint and include all related compounds sharing
-        the same identifier.
+      description: |-
+        Get QT status for one or more compound names. Matches are grouped like the compound search endpoint and include all related compounds sharing the same identifier.
+        Provide the list as repeated params (preferred, preserves names containing commas) or as a single legacy comma-joined value.
       parameters:
-      - description: Comma-separated compound names (e.g., Metoprolol,Aspirin)
+      - collectionFormat: multi
+        description: Compound names (e.g., Metoprolol,Aspirin)
         in: query
+        items:
+          type: string
         name: compounds
         required: true
-        type: string
+        type: array
       produces:
       - application/json
       responses:

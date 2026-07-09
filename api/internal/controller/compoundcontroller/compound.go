@@ -49,7 +49,7 @@ type Guideline struct {
 	DosingInformationAvailable        bool   `json:"dosing_information_available" db:"dosing_information_available"`
 	TestingInformationAvailable       bool   `json:"testing_information_available" db:"testing_info_available"`
 	RecommendationAvailable           bool   `json:"recommendation_available" db:"recommendation_available"`
-	OtherPrescribingGuidanceAvailable bool   `json:"other_prescribing_guidance_available" db:"other_prescribing_guidance_available"`
+	OtherPrescribingGuidanceAvailable bool   `json:"other_prescribing_guidance_available" db:"other_prescribing_guidance_available"` //nolint:lll // struct tag defines the JSON/DB field mapping and cannot be wrapped.
 	Pediatric                         bool   `json:"pediatric" db:"pediatric"`
 	RelatedGeneType                   string `json:"related_gene_type" db:"related_gene_type"`
 	RelatedGeneSymbol                 string `json:"related_gene_symbol" db:"related_gene_symbol"`
@@ -64,36 +64,46 @@ type CompoundSelectionQuery struct {
 
 // @Summary		Get compounds by name
 // @Description	Retrieves compounds by name and includes all related compounds sharing the same identifier.
+// @Description
+// @Description	The `names` parameter accepts the list in two formats:
+// @Description	1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+// @Description	Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+// @Description	2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+// @Description	This form is still supported but cannot represent names that contain a comma.
+// @Description
+// @Description	A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+// @Description	valid here, a lone name containing a comma sent as one value is **silently split** and returns
+// @Description	HTTP 200 with empty/incorrect matches (no error). Send such a name via the repeated form together
+// @Description	with at least one other value so the comma is preserved.
 // @Tags			compounds
 // @Accept			json
 // @Produce		json
-// @Param			names	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
-// @Success		200		{array}	object	"Successful response"
+// @Param			names	query	[]string	true	"Compound names, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"Metoprolol,Aspirin"
+// @Success		200		{array}	object		"Successful response"
 // @Failure		400		"Invalid request format or too many names provided"
 // @Failure		500		"Internal server error"
 // @Router			/compounds/names [get]
 func (cc *CompoundController) GetSelectCompounds(c *gin.Context) {
-	// Extract query parameters
-	namesParam := c.Query("names")
-	if namesParam == "" {
+	// Accept the list as repeated `names` parameters (verbatim) or a single
+	// comma-joined value (legacy), so names containing commas survive intact.
+	names := handle.QueryList(c, "names")
+	if handle.IsEmptyList(names) {
 		handle.BadRequestError(c, "Missing required parameter: names")
 		return
 	}
 
-	// Convert comma-separated values into a slice
-	names := strings.Split(namesParam, ",")
 	if len(names) > cc.Limits.BatchQueries {
 		handle.BadRequestError(c, fmt.Sprintf("Too many names provided. Maximum is %d", cc.Limits.BatchQueries))
 		return
 	}
 
-	formattedResults := cc.FetchCompounds(c, names, cc.DB) // Corrected method call
+	formattedResults := cc.FetchCompounds(c, names)
 
 	handle.Success(c, formattedResults)
 }
 
-// Corrected method signature and ensured regex-based matching remains
-func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string, db *sqlx.DB) []map[string]interface{} {
+// FetchCompounds resolves the given names to compounds using regex-based matching.
+func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string) []map[string]interface{} {
 	formattedResults := []map[string]interface{}{}
 
 	// Construct the SQL query for exact matches
@@ -108,7 +118,6 @@ func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string, db 
 		Where(squirrel.Eq{"b.Name": names}) // Exact match (case-insensitive due to collation)
 
 	query, args, _ := queryBuilder.ToSql()
-	fmt.Println(query, args)
 
 	var dbResults []struct {
 		Name      string  `db:"Name"`
@@ -178,49 +187,44 @@ func (cc *CompoundController) FetchCompounds(c *gin.Context, names []string, db 
 
 // @Summary		Get guidelines by drug name
 // @Description	Retrieves guidelines by drug name and includes all related synonyms for the drug.
+// @Description
+// @Description	The `names` parameter accepts the list in two formats:
+// @Description	1. **Repeated parameter (preferred):** `?names=Metoprolol&names=Mirtazapin-0,5-Wasser`.
+// @Description	Each occurrence is treated as one name verbatim, so names that contain a comma are preserved.
+// @Description	2. **Single comma-joined value (legacy):** `?names=Metoprolol,Aspirin`, split on commas.
+// @Description	This form is still supported but cannot represent names that contain a comma.
+// @Description
+// @Description	A value is only split when the parameter is supplied **once**. Because a single-name lookup is
+// @Description	valid here, a lone name containing a comma sent as one value is **silently split** and returns
+// @Description	HTTP 200 with empty/incorrect results (no error). Send such a name via the repeated form together
+// @Description	with at least one other value so the comma is preserved.
 // @Tags			pharmgkb
 // @Accept			json
 // @Produce		json
-// @Param			names	query	string	true	"Comma-separated compound names (e.g., Metoprolol,Aspirin)"
-// @Success		200		{array}	object	"Successful response"
+// @Param			names	query	[]string	true	"Compound names, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"Metoprolol,Aspirin"
+// @Success		200		{array}	object		"Successful response"
 // @Failure		400		"Invalid request format or too many names provided"
 // @Failure		500		"Internal server error"
 // @Router			/compounds/guidelines [get]
 func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
-	// Extract query parameters
-	namesParam := c.Query("names")
-	if namesParam == "" {
+	// Accept the list as repeated `names` parameters (verbatim) or a single
+	// comma-joined value (legacy), so names containing commas survive intact.
+	names := handle.QueryList(c, "names")
+	if handle.IsEmptyList(names) {
 		handle.BadRequestError(c, "Missing required parameter: names")
 		return
 	}
 
-	// Convert comma-separated values into a slice
-	names := strings.Split(namesParam, ",")
 	if len(names) > cc.Limits.BatchQueries {
 		handle.BadRequestError(c, fmt.Sprintf("Too many names provided. Maximum is %d", cc.Limits.BatchQueries))
 		return
 	}
 
 	// Fetch compounds first
-	formattedResults := cc.FetchCompounds(c, names, cc.DB)
+	formattedResults := cc.FetchCompounds(c, names)
 
 	// Extract unique compound names from `formattedResults`
-	unpackedNames := make(map[string]bool) // Use a map to avoid duplicates
-	for _, result := range formattedResults {
-		if matches, ok := result["matches"].([][]CompoundResponse); ok {
-			for _, group := range matches {
-				for _, compound := range group {
-					unpackedNames[strings.ToLower(compound.Name)] = true
-				}
-			}
-		}
-	}
-
-	// Convert map keys (unique compound names) to slice
-	uniqueNames := make([]string, 0, len(unpackedNames))
-	for name := range unpackedNames {
-		uniqueNames = append(uniqueNames, name)
-	}
+	uniqueNames := extractUniqueCompoundNames(formattedResults)
 
 	// If there are no compounds found, return empty results
 	if len(uniqueNames) == 0 {
@@ -262,11 +266,48 @@ func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
 	}
 
 	// Organize guidelines by drug name while ensuring **strict uniqueness** using a `set-like` structure
+	guidelinesByDrug := groupGuidelinesByDrug(dbResults)
+
+	// Replace `matches` with **unique** `guidelines` in `formattedResults`
+	attachGuidelinesToResults(formattedResults, guidelinesByDrug)
+
+	// Return the enriched results
+	handle.Success(c, formattedResults)
+}
+
+// extractUniqueCompoundNames collects the lowercased compound names from the
+// resolved matches, deduplicating them so each drug is queried only once.
+func extractUniqueCompoundNames(formattedResults []map[string]interface{}) []string {
+	unpackedNames := make(map[string]bool) // Use a map to avoid duplicates
+	for _, result := range formattedResults {
+		if matches, ok := result["matches"].([][]CompoundResponse); ok {
+			for _, group := range matches {
+				for _, compound := range group {
+					unpackedNames[strings.ToLower(compound.Name)] = true
+				}
+			}
+		}
+	}
+
+	// Convert map keys (unique compound names) to slice
+	uniqueNames := make([]string, 0, len(unpackedNames))
+	for name := range unpackedNames {
+		uniqueNames = append(uniqueNames, name)
+	}
+
+	return uniqueNames
+}
+
+// groupGuidelinesByDrug organizes guidelines by drug name while ensuring
+// **strict uniqueness** using a `set-like` structure keyed by a composite key.
+func groupGuidelinesByDrug(dbResults []Guideline) map[string]map[string]Guideline {
 	guidelinesByDrug := make(map[string]map[string]Guideline) // drug (from DB) -> uniqueKey -> Guideline struct
 
 	for _, guideline := range dbResults {
-		dbDrugName := strings.ToLower(guideline.Drug)                                                    // Use the drug name from the database
-		uniqueKey := fmt.Sprintf("%s|%s|%s", dbDrugName, guideline.GuidelineID, guideline.RelatedGeneID) // Unique composite key
+		// Use the drug name from the database.
+		dbDrugName := strings.ToLower(guideline.Drug)
+		// Unique composite key.
+		uniqueKey := fmt.Sprintf("%s|%s|%s", dbDrugName, guideline.GuidelineID, guideline.RelatedGeneID)
 
 		if _, exists := guidelinesByDrug[dbDrugName]; !exists {
 			guidelinesByDrug[dbDrugName] = make(map[string]Guideline)
@@ -276,32 +317,48 @@ func (cc *CompoundController) GetCompoundGuidelines(c *gin.Context) {
 		guidelinesByDrug[dbDrugName][uniqueKey] = guideline
 	}
 
-	// Replace `matches` with **unique** `guidelines` in `formattedResults`
-	for i := range formattedResults {
-		uniqueGuidelines := make([]Guideline, 0)
-		seenKeys := make(map[string]struct{}) // Track already added guidelines
+	return guidelinesByDrug
+}
 
-		if matches, ok := formattedResults[i]["matches"].([][]CompoundResponse); ok {
-			for _, group := range matches {
-				for _, compound := range group {
-					dbDrugName := strings.ToLower(compound.Name) // Use DB drug name
-					if guidelines, exists := guidelinesByDrug[dbDrugName]; exists {
-						for uniqueKey, guideline := range guidelines {
-							// Ensure **no duplicates in final output**
-							if _, seen := seenKeys[uniqueKey]; !seen {
-								seenKeys[uniqueKey] = struct{}{} // Mark as seen
-								uniqueGuidelines = append(uniqueGuidelines, guideline)
-							}
-						}
-					}
+// attachGuidelinesToResults replaces the `matches` entry of each result with a
+// **deduplicated** `guidelines` slice built from the grouped guidelines.
+func attachGuidelinesToResults(
+	formattedResults []map[string]interface{},
+	guidelinesByDrug map[string]map[string]Guideline,
+) {
+	for i := range formattedResults {
+		matches, _ := formattedResults[i]["matches"].([][]CompoundResponse)
+		// Replace `matches` with **deduplicated** `guidelines`
+		formattedResults[i]["guidelines"] = collectUniqueGuidelines(matches, guidelinesByDrug)
+		delete(formattedResults[i], "matches")
+	}
+}
+
+// collectUniqueGuidelines gathers the guidelines for the compounds contained in
+// matches, **deduplicated** across all groups using the composite key.
+func collectUniqueGuidelines(
+	matches [][]CompoundResponse,
+	guidelinesByDrug map[string]map[string]Guideline,
+) []Guideline {
+	uniqueGuidelines := make([]Guideline, 0)
+	seenKeys := make(map[string]struct{}) // Track already added guidelines
+
+	for _, group := range matches {
+		for _, compound := range group {
+			dbDrugName := strings.ToLower(compound.Name) // Use DB drug name
+			guidelines, exists := guidelinesByDrug[dbDrugName]
+			if !exists {
+				continue
+			}
+			for uniqueKey, guideline := range guidelines {
+				// Ensure **no duplicates in final output**
+				if _, seen := seenKeys[uniqueKey]; !seen {
+					seenKeys[uniqueKey] = struct{}{} // Mark as seen
+					uniqueGuidelines = append(uniqueGuidelines, guideline)
 				}
 			}
 		}
-		// Replace `matches` with **deduplicated** `guidelines`
-		formattedResults[i]["guidelines"] = uniqueGuidelines
-		delete(formattedResults[i], "matches")
 	}
 
-	// Return the enriched results
-	handle.Success(c, formattedResults)
+	return uniqueGuidelines
 }

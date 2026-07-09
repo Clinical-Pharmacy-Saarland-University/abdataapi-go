@@ -159,6 +159,14 @@ linters-settings:
     # Default: false
     all: true
 
+  misspell:
+    # Intentional domain terms that misspell wrongly flags as English typos.
+    # "Derivate" is a German term and the API JSON key `derivate` (contract, do not rename);
+    # "pointes" is the medical term "Torsade de pointes" (a cardiac arrhythmia).
+    ignore-words:
+      - Derivate
+      - pointes
+
 linters:
   disable-all: true
   enable:
@@ -288,6 +296,10 @@ issues:
       linters: [godot]
     - source: "//noinspection"
       linters: [gocritic]
+    # Swagger (swaggo) annotations must live on a single comment line; @Param/@Description
+    # lines legitimately exceed the length limit and cannot be wrapped.
+    - source: "^\\s*// @"
+      linters: [lll]
     - path: "_test\\.go"
       linters:
         - bodyclose
@@ -297,3 +309,12 @@ issues:
         - gosec
         - noctx
         - wrapcheck
+        # Idiomatic in tests: table-driven fixture globals, long fixture lines, and
+        # test helpers whose params are sometimes constant.
+        - gochecknoglobals
+        - lll
+        - unparam
+    # Shadowing `err` in successive test steps is a harmless, common idiom.
+    - path: "_test\\.go"
+      text: "^shadow:"
+      linters: [govet]

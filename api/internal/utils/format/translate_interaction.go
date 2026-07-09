@@ -115,7 +115,6 @@ func NewIntDirectionTranslator() func(*int, bool) *string {
 }
 
 func baseTranslatorFactory(translator, detailed map[int]string) func(*int, bool) *string {
-
 	tMap := map[bool](map[int]string){false: translator, true: detailed}
 
 	return func(value *int, detailed bool) *string {

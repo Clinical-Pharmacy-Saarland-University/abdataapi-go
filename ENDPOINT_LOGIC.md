@@ -11,6 +11,7 @@ This document summarizes how each API endpoint resolves inputs, which internal i
   - If `VSS_DB.Typ = 100`, the effective active-substance key is `Key_STO_1`.
   - Otherwise the effective key is `SNA_DB.Key_STO`.
 - `common.FamToPZN(...)` maps `PAE_DB.PZN -> Key_FAM`.
+- Compound-name list parameters (`compounds`/`names`/`compound` on the compound, interaction, QT, Priscus and ADR routes) are read through `handle.QueryList`/`handle.NormalizeList`: repeated query parameters are kept verbatim (so a name may contain a comma, e.g. `Mirtazapin-0,5-Wasser`), while a single value is comma-split for legacy clients. PZN list parameters stay plain comma-separated (PZNs never contain a comma).
 
 ## System
 

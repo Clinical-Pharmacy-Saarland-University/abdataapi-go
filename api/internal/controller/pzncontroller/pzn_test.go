@@ -1,3 +1,4 @@
+//nolint:testpackage // exercises the unexported productNameQueryValues helper.
 package pzncontroller
 
 import (

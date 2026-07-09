@@ -119,7 +119,18 @@ func fetchProductsByNames(names []string, limit int, includeNotes bool, lang str
 	return results, nil
 }
 
+// searchCompoundRow is a single active-compound row for the product search path,
+// keyed by its owning Key_FAM.
+type searchCompoundRow struct {
+	KeyFAM  uint64  `db:"Key_FAM"`
+	KeySTO  string  `db:"Key_STO"`
+	Name    string  `db:"Name"`
+	KeySTO1 *string `db:"Key_STO_1"`
+}
+
 func fetchProductsByName(name string, limit int, includeNotes bool, lang string, db *sqlx.DB) ([]ProductSearchResult, error) {
+	// G115: limit is clamped to [1,100] by GetProductSearch before this call, so it cannot overflow or go negative.
+	limitVal := uint64(limit) //nolint:gosec // limit is clamped to [1,100] upstream.
 	productQuery := squirrel.Select(
 		"FAM_DB.Key_FAM",
 		"FAM_DB.Produktname",
@@ -132,7 +143,7 @@ func fetchProductsByName(name string, limit int, includeNotes bool, lang string,
 		Where("FAM_DB.Veterinaerpraeparat = 0").
 		Where("LOWER(FAM_DB.Produktname) LIKE ?", "%"+strings.ToLower(name)+"%").
 		OrderBy("FAM_DB.Produktname", "PAE_DB.PZN").
-		Limit(uint64(limit))
+		Limit(limitVal)
 
 	query, args, _ := productQuery.ToSql()
 	products := []struct {
@@ -152,6 +163,39 @@ func fetchProductsByName(name string, limit int, includeNotes bool, lang string,
 		fams = append(fams, product.KeyFAM)
 	}
 
+	compoundsByFAM, err := activeCompoundsByFAM(fams, db)
+	if err != nil {
+		return nil, err
+	}
+	standardNotesByFAM := map[uint64][]StandardNoteGroup{}
+	if includeNotes {
+		standardNotesByFAM, err = fetchStandardNotesByFAM(fams, lang, db)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	results := make([]ProductSearchResult, 0, len(products))
+	for _, product := range products {
+		result := ProductSearchResult{
+			ProductName:     product.ProductName,
+			PZN:             product.PZN,
+			ActiveCompounds: compoundsByFAM[product.KeyFAM],
+		}
+		if includeNotes {
+			result.StandardNotes = standardNotesByFAM[product.KeyFAM]
+		}
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+// activeCompoundsByFAM fetches active compounds for the given Key_FAMs and returns
+// them grouped per Key_FAM, dropping derivates (a Key_STO that appears as another
+// row's Key_STO_1 within the same Key_FAM). Every requested Key_FAM is present in
+// the result map (with an empty slice when it has no surviving compound).
+func activeCompoundsByFAM(fams []uint64, db *sqlx.DB) (map[uint64][]string, error) {
 	compoundQuery := squirrel.Select(
 		"FAI_DB.Key_FAM",
 		"FAI_DB.Key_STO",
@@ -170,48 +214,20 @@ func fetchProductsByName(name string, limit int, includeNotes bool, lang string,
 			)`)).
 		OrderBy("FAI_DB.Key_FAM", "FAI_DB.Key_STO")
 
-	query, args, _ = compoundQuery.ToSql()
-	compoundRows := []struct {
-		KeyFAM  uint64  `db:"Key_FAM"`
-		KeySTO  string  `db:"Key_STO"`
-		Name    string  `db:"Name"`
-		KeySTO1 *string `db:"Key_STO_1"`
-	}{}
+	query, args, _ := compoundQuery.ToSql()
+	var compoundRows []searchCompoundRow
 	if err := db.Select(&compoundRows, query, args...); err != nil {
 		return nil, fmt.Errorf("error fetching active compounds for product search: %w", err)
 	}
-	standardNotesByFAM := map[uint64][]StandardNoteGroup{}
-	if includeNotes {
-		var err error
-		standardNotesByFAM, err = fetchStandardNotesByFAM(fams, lang, db)
-		if err != nil {
-			return nil, err
-		}
+
+	compoundsByFAM := make(map[uint64][]string, len(fams))
+	for _, fam := range fams {
+		compoundsByFAM[fam] = []string{}
 	}
 
-	compoundsByFAM := make(map[uint64][]string, len(products))
-	for _, product := range products {
-		compoundsByFAM[product.KeyFAM] = []string{}
-	}
-
-	groupedRows := make(map[uint64][]struct {
-		KeyFAM  uint64
-		KeySTO  string
-		Name    string
-		KeySTO1 *string
-	}, len(products))
+	groupedRows := make(map[uint64][]searchCompoundRow, len(fams))
 	for _, row := range compoundRows {
-		groupedRows[row.KeyFAM] = append(groupedRows[row.KeyFAM], struct {
-			KeyFAM  uint64
-			KeySTO  string
-			Name    string
-			KeySTO1 *string
-		}{
-			KeyFAM:  row.KeyFAM,
-			KeySTO:  row.KeySTO,
-			Name:    row.Name,
-			KeySTO1: row.KeySTO1,
-		})
+		groupedRows[row.KeyFAM] = append(groupedRows[row.KeyFAM], row)
 	}
 
 	for fam, rows := range groupedRows {
@@ -231,34 +247,7 @@ func fetchProductsByName(name string, limit int, includeNotes bool, lang string,
 		compoundsByFAM[fam] = slices.Collect(maps.Values(activeMap))
 	}
 
-	results := make([]ProductSearchResult, 0, len(products))
-	for _, product := range products {
-		result := ProductSearchResult{
-			ProductName:     product.ProductName,
-			PZN:             product.PZN,
-			ActiveCompounds: compoundsByFAM[product.KeyFAM],
-		}
-		if includeNotes {
-			result.StandardNotes = standardNotesByFAM[product.KeyFAM]
-		}
-		results = append(results, result)
-	}
-
-	return results, nil
-}
-
-func splitProductNames(rawValues ...string) []string {
-	result := make([]string, 0, len(rawValues))
-	for _, raw := range rawValues {
-		for _, part := range strings.Split(raw, ",") {
-			part = strings.TrimSpace(part)
-			if part != "" {
-				result = append(result, part)
-			}
-		}
-	}
-
-	return result
+	return compoundsByFAM, nil
 }
 
 func productNameQueryValues(rawQuery string, key string) []string {
@@ -275,8 +264,8 @@ func productNameQueryValues(rawQuery string, key string) []string {
 		}
 
 		for _, rawPart := range strings.Split(rawValue, ",") {
-			decodedPart, err := url.QueryUnescape(rawPart)
-			if err != nil {
+			decodedPart, partErr := url.QueryUnescape(rawPart)
+			if partErr != nil {
 				continue
 			}
 
@@ -290,8 +279,29 @@ func productNameQueryValues(rawQuery string, key string) []string {
 	return values
 }
 
-func (pc *PZNController) GetProductList(c *gin.Context) {
+// productListRow is a single product/compound row returned by the product-list
+// query, before grouping by PZN.
+type productListRow struct {
+	ProductName string  `db:"Produktname" json:"product"`
+	ATC         string  `db:"Key_ATC" json:"atc"`
+	PZN         string  `db:"PZN" json:"pzn"`
+	KeySTO      string  `db:"Key_STO" json:"key_sto"`
+	KeySTO1     *string `db:"Key_STO_1" json:"key_sto_1"`
+	KeySTO2     *string `db:"Key_STO_2" json:"key_sto_2"`
+	Typ         *int    `db:"Typ" json:"typ"`
+	Name        string  `db:"Name" json:"name"`
+}
 
+// productListResult is one product entry (with its active compounds) in the
+// product-list response.
+type productListResult struct {
+	ProductName     string   `json:"product"`
+	ATC             string   `json:"atc"`
+	PZN             *string  `json:"pzn"`
+	ActiveCompounds []string `json:"active_compounds"`
+}
+
+func (pc *PZNController) GetProductList(c *gin.Context) {
 	const pageSize = 1000
 
 	var params struct {
@@ -302,26 +312,10 @@ func (pc *PZNController) GetProductList(c *gin.Context) {
 		return
 	}
 
-	// Count the total number of distinct PZNs
-	type CountResult struct {
-		Count int `db:"count"`
-	}
-
-	var cResult CountResult
-	err := pc.DB.Get(&cResult, `
-		SELECT COUNT(DISTINCT PZN) as count 
-		FROM PAE_DB 
-		LEFT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM 
-		WHERE PZN IS NOT NULL 
-		AND KEY_ATC IS NOT NULL 
-		AND FAM_DB.Veterinaerpraeparat = 0
-	`)
-	if err != nil {
-		handle.Error(c, err)
+	pages, ok := pc.countProductListPages(c, pageSize)
+	if !ok {
 		return
 	}
-
-	pages := (cResult.Count + pageSize - 1) / pageSize
 
 	if params.Page <= 0 {
 		handle.BadRequestError(c, "Page must be a positive integer")
@@ -333,27 +327,88 @@ func (pc *PZNController) GetProductList(c *gin.Context) {
 		return
 	}
 
-	queryPzns := fmt.Sprintf(`
-		SELECT DISTINCT PZN
-		FROM PAE_DB 
-		LEFT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM 
-		WHERE PZN IS NOT NULL 
-		AND KEY_ATC IS NOT NULL 
-		AND FAM_DB.Veterinaerpraeparat = 0
-		ORDER BY PZN
-		LIMIT %d OFFSET %d`, pageSize, (params.Page-1)*pageSize)
+	pznsRes, ok := pc.fetchProductListPZNs(c, pageSize, params.Page)
+	if !ok {
+		return
+	}
 
-	var pznsRes []string
-	err = pc.DB.Select(&pznsRes, queryPzns)
+	dbResults, ok := pc.fetchProductListRows(c, pznsRes)
+	if !ok {
+		return
+	}
+
+	results := groupProductListResults(dbResults)
+
+	data := struct {
+		Pages      int `json:"pages"`
+		Page       int `json:"page"`
+		PZNPerPage int `json:"pzns_per_page"`
+		// Data contains the list of products with their active compounds
+		Data []productListResult `json:"products"`
+	}{
+		Pages:      pages,
+		Page:       params.Page,
+		PZNPerPage: pageSize,
+		Data:       results,
+	}
+
+	handle.Success(c, data)
+}
+
+// countProductListPages runs the distinct-PZN count query and returns the total
+// number of pages. On DB error it writes the error response and returns ok=false.
+func (pc *PZNController) countProductListPages(c *gin.Context, pageSize int) (int, bool) {
+	// Count the total number of distinct PZNs.
+	type CountResult struct {
+		Count int `db:"count"`
+	}
+
+	var cResult CountResult
+	err := pc.DB.Get(&cResult, `
+		SELECT COUNT(DISTINCT PZN) as count
+		FROM PAE_DB
+		LEFT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM
+		WHERE PZN IS NOT NULL
+		AND KEY_ATC IS NOT NULL
+		AND FAM_DB.Veterinaerpraeparat = 0
+	`)
 	if err != nil {
 		handle.Error(c, err)
-		return
-	}
-	if len(pznsRes) == 0 {
-		handle.NotFoundError(c, fmt.Sprintf("No PZNs found for page %d", params.Page))
-		return
+		return 0, false
 	}
 
+	return (cResult.Count + pageSize - 1) / pageSize, true
+}
+
+// fetchProductListPZNs runs the paginated distinct-PZN query for the given page.
+// On DB error or an empty page it writes the response and returns ok=false.
+func (pc *PZNController) fetchProductListPZNs(c *gin.Context, pageSize, page int) ([]string, bool) {
+	queryPzns := fmt.Sprintf(`
+		SELECT DISTINCT PZN
+		FROM PAE_DB
+		LEFT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM
+		WHERE PZN IS NOT NULL
+		AND KEY_ATC IS NOT NULL
+		AND FAM_DB.Veterinaerpraeparat = 0
+		ORDER BY PZN
+		LIMIT %d OFFSET %d`, pageSize, (page-1)*pageSize)
+
+	var pznsRes []string
+	if err := pc.DB.Select(&pznsRes, queryPzns); err != nil {
+		handle.Error(c, err)
+		return nil, false
+	}
+	if len(pznsRes) == 0 {
+		handle.NotFoundError(c, fmt.Sprintf("No PZNs found for page %d", page))
+		return nil, false
+	}
+
+	return pznsRes, true
+}
+
+// fetchProductListRows runs the product/compound query for the page's PZNs. On DB
+// or query-build error it writes the error response and returns ok=false.
+func (pc *PZNController) fetchProductListRows(c *gin.Context, pznsRes []string) ([]productListRow, bool) {
 	queryBuilder := squirrel.Select(
 		"DISTINCT FAM_DB.Produktname",
 		"FAM_DB.Key_ATC",
@@ -387,37 +442,27 @@ func (pc *PZNController) GetProductList(c *gin.Context) {
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		handle.Error(c, err)
-		return
+		return nil, false
 	}
 
-	type dbResult struct {
-		ProductName string  `db:"Produktname" json:"product"`
-		ATC         string  `db:"Key_ATC" json:"atc"`
-		PZN         string  `db:"PZN" json:"pzn"`
-		KeySTO      string  `db:"Key_STO" json:"key_sto"`
-		KeySTO1     *string `db:"Key_STO_1" json:"key_sto_1"`
-		KeySTO2     *string `db:"Key_STO_2" json:"key_sto_2"`
-		Typ         *int    `db:"Typ" json:"typ"`
-		Name        string  `db:"Name" json:"name"`
+	var dbResults []productListRow
+	if selErr := pc.DB.Select(&dbResults, query, args...); selErr != nil {
+		handle.Error(c, selErr)
+		return nil, false
 	}
 
-	var dbResults []dbResult
-	err = pc.DB.Select(&dbResults, query, args...)
-	if err != nil {
-		handle.Error(c, err)
-		return
-	}
+	return dbResults, true
+}
 
-	// We have now ordered by PZN but have to eliminate Key_STOs that are also in Key_STO_1
-	type result struct {
-		ProductName     string   `json:"product"`
-		ATC             string   `json:"atc"`
-		PZN             *string  `json:"pzn"`
-		ActiveCompounds []string `json:"active_compounds"`
-	}
-
-	var pznResults []dbResult
-	var results []result
+// groupProductListResults collapses the PZN-ordered rows into one entry per PZN,
+// eliminating Key_STOs that also appear as another row's Key_STO_1 (derivates).
+//
+// NOTE: this preserves the existing behavior where the final PZN group is never
+// flushed (only emitted when the next row has a different PZN), so a trailing
+// group is dropped. The golden tests pin this exact behavior.
+func groupProductListResults(dbResults []productListRow) []productListResult {
+	var pznResults []productListRow
+	var results []productListResult
 	for _, res := range dbResults {
 		if len(pznResults) == 0 || pznResults[0].PZN == res.PZN {
 			pznResults = append(pznResults, res)
@@ -425,7 +470,7 @@ func (pc *PZNController) GetProductList(c *gin.Context) {
 		}
 
 		if pznResults[0].PZN != res.PZN {
-			r := result{
+			r := productListResult{
 				ProductName:     pznResults[0].ProductName,
 				ATC:             pznResults[0].ATC,
 				PZN:             &pznResults[0].PZN,
@@ -447,25 +492,12 @@ func (pc *PZNController) GetProductList(c *gin.Context) {
 			r.ActiveCompounds = slices.Collect(maps.Values(activeMap))
 
 			results = append(results, r)
-			pznResults = []dbResult{res}
+			pznResults = []productListRow{res}
 			continue
 		}
 	}
 
-	data := struct {
-		Pages      int `json:"pages"`
-		Page       int `json:"page"`
-		PZNPerPage int `json:"pzns_per_page"`
-		// Data contains the list of products with their active compounds
-		Data []result `json:"products"`
-	}{
-		Pages:      pages,
-		Page:       params.Page,
-		PZNPerPage: pageSize,
-		Data:       results,
-	}
-
-	handle.Success(c, data)
+	return results
 }
 
 // @Summary		List active compounds for PZNs
@@ -681,7 +713,8 @@ func fetchProductInfo(pzns []string, db *sqlx.DB, translate func(*int, bool) *st
 	// ✅ Convert results into []ProductInfo
 	var productInfos []ProductInfo
 	for _, dbResult := range dbResults {
-		categoryInt := int(dbResult.Category) // Convert uint64 to int for translation
+		// Category is a small ABDA Produktgruppe enum code, so the uint64->int conversion cannot overflow.
+		categoryInt := int(dbResult.Category) //nolint:gosec // Produktgruppe is a small enum code.
 		categoryName := translate(&categoryInt, false)
 
 		productInfos = append(productInfos, ProductInfo{
