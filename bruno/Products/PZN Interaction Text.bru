@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{url}}/api/v1/interactions/pzns?pzns=00639943,06995774&text=true
+  url: {{url}}/api/v1/interactions/pzns?pzns=00639943,06995774&text=true&annotations=true&lang=english
   body: none
   auth: inherit
 }
@@ -13,6 +13,8 @@ get {
 params:query {
   pzns: 00639943,06995774
   text: true
+  annotations: true
+  lang: english
 }
 
 tests {
@@ -29,5 +31,11 @@ tests {
       body.data[0].text.mechanism ||
       body.data[0].text.literature
     ).to.not.equal(undefined);
+    expect(body.data[0].annotation).to.not.equal(undefined);
+    expect(body.data[0].annotation.interaction_type).to.be.a("string");
+    expect(Array.isArray(body.data[0].annotation.interaction_target)).to.equal(true);
+    expect(body.data[0].annotation.evidence_type).to.equal(undefined);
+    expect(body.data[0].annotation.evidence_mechanism).to.equal(undefined);
+    expect(body.data[0].annotation.evidence_target).to.equal(undefined);
   });
 }

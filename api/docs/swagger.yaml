@@ -62,6 +62,10 @@ definitions:
     type: object
   CompoundInteraction:
     properties:
+      annotation:
+        allOf:
+        - $ref: '#/definitions/InteractionAnnotation'
+        description: Extracted interaction annotation
       compounds_left:
         description: Victim compound(s)
         example:
@@ -113,6 +117,14 @@ definitions:
     type: object
   CompoundInteractionPostQuery:
     properties:
+      annotation_text:
+        description: Fetch annotation evidence text
+        example: true
+        type: boolean
+      annotations:
+        description: Fetch interaction annotation
+        example: true
+        type: boolean
       compounds:
         description: Array of compounds
         example:
@@ -132,6 +144,10 @@ definitions:
       id:
         description: ID of the query
         example: "1"
+        type: string
+      lang:
+        description: Annotation language
+        example: english
         type: string
       text:
         description: Fetch interaction text
@@ -260,6 +276,39 @@ definitions:
         allOf:
         - $ref: '#/definitions/cfg.MetaConfig'
         description: Meta
+    type: object
+  InteractionAnnotation:
+    properties:
+      annotation_date:
+        type: string
+      annotation_source:
+        type: string
+      confidence_level:
+        type: string
+      evidence_mechanism:
+        items:
+          type: string
+        type: array
+      evidence_target:
+        items:
+          type: string
+        type: array
+      evidence_type:
+        items:
+          type: string
+        type: array
+      interaction_mechanism:
+        items:
+          type: string
+        type: array
+      interaction_target:
+        items:
+          type: string
+        type: array
+      interaction_type:
+        type: string
+      validation_status:
+        type: string
     type: object
   InteractionText:
     properties:
@@ -491,6 +540,10 @@ definitions:
     type: object
   PZNInteraction:
     properties:
+      annotation:
+        allOf:
+        - $ref: '#/definitions/InteractionAnnotation'
+        description: Extracted interaction annotation
       credibility:
         description: Credibility of the interaction
         example: insufficient
@@ -532,6 +585,14 @@ definitions:
     type: object
   PZNInteractionPostQuery:
     properties:
+      annotation_text:
+        description: Fetch annotation evidence text
+        example: true
+        type: boolean
+      annotations:
+        description: Fetch interaction annotation
+        example: true
+        type: boolean
       details:
         description: Detailed interaction descriptions
         example: true
@@ -539,6 +600,10 @@ definitions:
       id:
         description: ID of the query
         example: "1"
+        type: string
+      lang:
+        description: Annotation language
+        example: english
         type: string
       pzns:
         description: Array of PZNs
@@ -812,6 +877,37 @@ definitions:
         type: string
       pzn:
         type: string
+      standard_notes:
+        items:
+          $ref: '#/definitions/pzncontroller.StandardNoteGroup'
+        type: array
+    type: object
+  pzncontroller.ProductStandardNotes:
+    properties:
+      product_name:
+        type: string
+      pzn:
+        type: string
+      standard_notes:
+        items:
+          $ref: '#/definitions/pzncontroller.StandardNoteGroup'
+        type: array
+    type: object
+  pzncontroller.StandardNote:
+    properties:
+      patient_info:
+        type: boolean
+      text:
+        type: string
+    type: object
+  pzncontroller.StandardNoteGroup:
+    properties:
+      category:
+        type: string
+      notes:
+        items:
+          $ref: '#/definitions/pzncontroller.StandardNote'
+        type: array
     type: object
   qtcontroller.QTCompoundResult:
     properties:
@@ -1150,6 +1246,18 @@ paths:
         in: query
         name: text
         type: boolean
+      - description: Fetch language-specific interaction annotation
+        in: query
+        name: annotations
+        type: boolean
+      - description: Fetch annotation evidence text
+        in: query
+        name: annotation_text
+        type: boolean
+      - description: 'Annotation language: german or english (default: german)'
+        in: query
+        name: lang
+        type: string
       produces:
       - application/json
       responses:
@@ -1265,6 +1373,18 @@ paths:
         in: query
         name: text
         type: boolean
+      - description: Fetch language-specific interaction annotation
+        in: query
+        name: annotations
+        type: boolean
+      - description: Fetch annotation evidence text
+        in: query
+        name: annotation_text
+        type: boolean
+      - description: 'Annotation language: german or english (default: german)'
+        in: query
+        name: lang
+        type: string
       produces:
       - application/json
       responses:
@@ -1467,7 +1587,8 @@ paths:
   /product/search:
     get:
       description: Fuzzy-search products by one or more product names and return matching
-        PZNs with active compounds grouped by input.
+        PZNs with active compounds grouped by input. Standard notes are included only
+        when notes=true.
       parameters:
       - description: Comma-separated product name search terms; encode literal commas
           as %2C
@@ -1480,6 +1601,16 @@ paths:
         in: query
         name: limit
         type: integer
+      - default: false
+        description: Include standard notes
+        in: query
+        name: notes
+        type: boolean
+      - description: 'Language for standard note categories and text: german or english
+          (default: german)'
+        in: query
+        name: lang
+        type: string
       produces:
       - application/json
       responses:
@@ -1496,6 +1627,41 @@ paths:
       security:
       - Bearer: []
       summary: Search products by name
+      tags:
+      - Product
+  /product/standardnotes/pzns:
+    get:
+      description: Get Standardhinweise for one or more PZNs. Products without Standardhinweise
+        are returned with an empty standard_notes array.
+      parameters:
+      - description: Comma separated string of PZNs
+        in: query
+        name: pzns
+        required: true
+        type: string
+      - description: 'Language for standard note categories and text: german or english
+          (default: german)'
+        in: query
+        name: lang
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of PZNs with standard notes
+          schema:
+            items:
+              $ref: '#/definitions/pzncontroller.ProductStandardNotes'
+            type: array
+        "400":
+          description: Bad request (e.g. invalid PZNs)
+        "404":
+          description: PZN(s) not found
+        "500":
+          description: Internal server error
+      security:
+      - Bearer: []
+      summary: List standard notes for PZNs
       tags:
       - Product
   /qt/compounds:

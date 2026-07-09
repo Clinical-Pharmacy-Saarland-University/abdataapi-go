@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,19 @@ type InteractionText struct {
 	Mechanism           *string `json:"mechanism,omitempty"`
 	Literature          *string `json:"literature,omitempty"`
 } //	@name	InteractionText
+
+type InteractionAnnotation struct {
+	InteractionType      string   `json:"interaction_type,omitempty"`
+	InteractionMechanism []string `json:"interaction_mechanism,omitempty"`
+	InteractionTarget    []string `json:"interaction_target,omitempty"`
+	EvidenceType         []string `json:"evidence_type,omitempty"`
+	EvidenceMechanism    []string `json:"evidence_mechanism,omitempty"`
+	EvidenceTarget       []string `json:"evidence_target,omitempty"`
+	ConfidenceLevel      string   `json:"confidence_level,omitempty"`
+	ValidationStatus     string   `json:"validation_status,omitempty"`
+	AnnotationSource     string   `json:"annotation_source,omitempty"`
+	AnnotationDate       string   `json:"annotation_date,omitempty"`
+} //	@name	InteractionAnnotation
 
 func NewInteractionController(resourceHandle *handle.ResourceHandle) *InteractionController {
 	return &InteractionController{
@@ -95,10 +109,13 @@ func (ic *InteractionController) GetInterDescription(c *gin.Context) {
 // @Router			/interactions/pzns [post]
 func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 	type Query struct {
-		ID           string   `json:"id" binding:"required" example:"1"`                 // ID of the query
-		PZNs         []string `json:"pzns" binding:"required" example:"1234567,7654321"` // Array of PZNs
-		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`        // Detailed interaction descriptions
-		FetchText    bool     `json:"text" binding:"omitempty" example:"true"`           // Fetch interaction text
+		ID             string   `json:"id" binding:"required" example:"1"`                  // ID of the query
+		PZNs           []string `json:"pzns" binding:"required" example:"1234567,7654321"`  // Array of PZNs
+		DetailedDesc   bool     `json:"details" binding:"omitempty" example:"true"`         // Detailed interaction descriptions
+		FetchText      bool     `json:"text" binding:"omitempty" example:"true"`            // Fetch interaction text
+		Annotations    bool     `json:"annotations" binding:"omitempty" example:"true"`     // Fetch interaction annotation
+		AnnotationText bool     `json:"annotation_text" binding:"omitempty" example:"true"` // Fetch annotation evidence text
+		Lang           string   `json:"lang" binding:"omitempty" example:"english"`         // Annotation language
 	} //	@name	PZNInteractionPostQuery
 	queries := []Query{}
 
@@ -144,7 +161,7 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 				<-semaphore
 			}()
 
-			result, err := fetchPznInteractions(query.PZNs, db, ic, query.DetailedDesc, query.FetchText)
+			result, err := fetchPznInteractions(query.PZNs, db, ic, query.DetailedDesc, query.FetchText, query.Annotations, query.AnnotationText, query.Lang)
 			results[idx] = BatchResult{q.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
@@ -179,6 +196,9 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 // @Param			pzns	query		string											true	"Comma separated string of PZNs"			example:"1234567,7654321"
 // @Param			details	query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
 // @Param			text	query		boolean											false	"Fetch interaction text"					default:"false"
+// @Param			annotations	query	boolean											false	"Fetch language-specific interaction annotation"	default:"false"
+// @Param			annotation_text	query	boolean										false	"Fetch annotation evidence text"			default:"false"
+// @Param			lang	query		string											false	"Annotation language: german or english (default: german)"
 // @Success		200		{object}	handle.jsendSuccess[[]PZNInteraction]			"List of drug-drug interactions"
 // @Failure		422		{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
 // @Failure		500		{object}	handle.jSendError								"Internal server error"
@@ -191,9 +211,12 @@ func (ic *InteractionController) PostInterPZNs(c *gin.Context) {
 // @Router			/interactions/pzns [get]
 func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 	type Query struct {
-		PZNs         string `form:"pzns" binding:"required" example:"1234567,7654321"`
-		DetailedDesc bool   `form:"details" binding:"omitempty" example:"true"`
-		FetchText    bool   `form:"text" binding:"omitempty" example:"true"`
+		PZNs           string `form:"pzns" binding:"required" example:"1234567,7654321"`
+		DetailedDesc   bool   `form:"details" binding:"omitempty" example:"true"`
+		FetchText      bool   `form:"text" binding:"omitempty" example:"true"`
+		Annotations    bool   `form:"annotations" binding:"omitempty" example:"true"`
+		AnnotationText bool   `form:"annotation_text" binding:"omitempty" example:"true"`
+		Lang           string `form:"lang" binding:"omitempty" example:"english"`
 	} //	@name	PZNInteractionQuery
 
 	var query Query
@@ -203,7 +226,7 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 
 	pzns := strings.Split(query.PZNs, ",")
 
-	result, err := fetchPznInteractions(pzns, ic.DB, ic, query.DetailedDesc, query.FetchText)
+	result, err := fetchPznInteractions(pzns, ic.DB, ic, query.DetailedDesc, query.FetchText, query.Annotations, query.AnnotationText, query.Lang)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -250,11 +273,14 @@ func (ic *InteractionController) GetInterPZNs(c *gin.Context) {
 // @Router			/interactions/compounds [post]
 func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 	type Query struct {
-		ID           string   `json:"id" binding:"required" example:"1"`                          // ID of the query
-		Compounds    []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
-		FetchDoses   bool     `json:"doses" binding:"omitempty" example:"true"`                   // Fetch dose/formulation information
-		DetailedDesc bool     `json:"details" binding:"omitempty" example:"true"`                 // Detailed interaction descriptions
-		FetchText    bool     `json:"text" binding:"omitempty" example:"true"`                    // Fetch interaction text
+		ID             string   `json:"id" binding:"required" example:"1"`                          // ID of the query
+		Compounds      []string `json:"compounds" binding:"required" example:"Aspirin,Paracetamol"` // Array of compounds
+		FetchDoses     bool     `json:"doses" binding:"omitempty" example:"true"`                   // Fetch dose/formulation information
+		DetailedDesc   bool     `json:"details" binding:"omitempty" example:"true"`                 // Detailed interaction descriptions
+		FetchText      bool     `json:"text" binding:"omitempty" example:"true"`                    // Fetch interaction text
+		Annotations    bool     `json:"annotations" binding:"omitempty" example:"true"`             // Fetch interaction annotation
+		AnnotationText bool     `json:"annotation_text" binding:"omitempty" example:"true"`         // Fetch annotation evidence text
+		Lang           string   `json:"lang" binding:"omitempty" example:"english"`                 // Annotation language
 	} //	@name	CompoundInteractionPostQuery
 	queries := []Query{}
 
@@ -298,7 +324,7 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 			defer wg.Done()
 			defer func() { <-semaphore }()
 
-			result, err := fetchCompoundInteractions(query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc, query.FetchText)
+			result, err := fetchCompoundInteractions(query.Compounds, db, ic, query.FetchDoses, query.DetailedDesc, query.FetchText, query.Annotations, query.AnnotationText, query.Lang)
 			results[idx] = BatchResult{query.ID, apierr.ToResponse(c, err), &result}
 		}(i, &q)
 	}
@@ -337,6 +363,9 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Param			doses		query		boolean											false	"Fetch doses"								default:"false"
 // @Param			details		query		boolean											false	"Fetch detailed interaction descriptions"	default:"false"
 // @Param			text		query		boolean											false	"Fetch interaction text"					default:"false"
+// @Param			annotations	query		boolean											false	"Fetch language-specific interaction annotation"	default:"false"
+// @Param			annotation_text	query	boolean										false	"Fetch annotation evidence text"			default:"false"
+// @Param			lang		query		string											false	"Annotation language: german or english (default: german)"
 // @Success		200			{object}	handle.jsendSuccess[[]CompoundInteraction]		"List of drug-drug interactions"
 // @Failure		422			{object}	handle.jsendFailure[handle.validationResponse]	"Bad query format"
 // @Failure		500			{object}	handle.jSendError								"Internal server error"
@@ -349,10 +378,13 @@ func (ic *InteractionController) PostInterCompounds(c *gin.Context) {
 // @Router			/interactions/compounds [get]
 func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 	type Query struct {
-		Compounds    string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`
-		FetchDose    bool   `form:"doses" binding:"omitempty" example:"true"`
-		DetailedDesc bool   `form:"details" binding:"omitempty" example:"true"`
-		FetchText    bool   `form:"text" binding:"omitempty" example:"true"`
+		Compounds      string `form:"compounds" binding:"required" example:"Aspirin,Paracetamol"`
+		FetchDose      bool   `form:"doses" binding:"omitempty" example:"true"`
+		DetailedDesc   bool   `form:"details" binding:"omitempty" example:"true"`
+		FetchText      bool   `form:"text" binding:"omitempty" example:"true"`
+		Annotations    bool   `form:"annotations" binding:"omitempty" example:"true"`
+		AnnotationText bool   `form:"annotation_text" binding:"omitempty" example:"true"`
+		Lang           string `form:"lang" binding:"omitempty" example:"english"`
 	} //	@name	CompoundInteractionQuery
 
 	var query Query
@@ -362,7 +394,7 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 
 	compounds := strings.Split(query.Compounds, ",")
 
-	result, err := fetchCompoundInteractions(compounds, ic.DB, ic, query.FetchDose, query.DetailedDesc, query.FetchText)
+	result, err := fetchCompoundInteractions(compounds, ic.DB, ic, query.FetchDose, query.DetailedDesc, query.FetchText, query.Annotations, query.AnnotationText, query.Lang)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -372,16 +404,17 @@ func (ic *InteractionController) GetInterCompounds(c *gin.Context) {
 }
 
 type CompoundInteraction struct {
-	Plausibility *string          `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
-	Relevance    *string          `json:"relevance" example:"minor"`                  // Relevance of the interaction
-	Frequency    *string          `json:"frequency" example:"common"`                 // Frequency of the interaction
-	Credibility  *string          `json:"credibility" example:"insufficient"`         // Credibility of the interaction
-	Direction    *string          `json:"direction" example:"undirected interaction"` // Direction of the interaction
-	CompoundsL   []string         `json:"compounds_left" example:"Aspirin"`           // Victim compound(s)
-	CompoundsR   []string         `json:"compounds_right" example:"Paracetamol"`      // Perpetrator compound(s)
-	DosesL       []*CompoundDose  `json:"doses_left"`                                 // Doses of the victim compounds
-	DosesR       []*CompoundDose  `json:"doses_right"`                                // Doses of the perpetrator compounds
-	Text         *InteractionText `json:"text,omitempty"`                             // Extracted interaction text
+	Plausibility *string                `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
+	Relevance    *string                `json:"relevance" example:"minor"`                  // Relevance of the interaction
+	Frequency    *string                `json:"frequency" example:"common"`                 // Frequency of the interaction
+	Credibility  *string                `json:"credibility" example:"insufficient"`         // Credibility of the interaction
+	Direction    *string                `json:"direction" example:"undirected interaction"` // Direction of the interaction
+	CompoundsL   []string               `json:"compounds_left" example:"Aspirin"`           // Victim compound(s)
+	CompoundsR   []string               `json:"compounds_right" example:"Paracetamol"`      // Perpetrator compound(s)
+	DosesL       []*CompoundDose        `json:"doses_left"`                                 // Doses of the victim compounds
+	DosesR       []*CompoundDose        `json:"doses_right"`                                // Doses of the perpetrator compounds
+	Text         *InteractionText       `json:"text,omitempty"`                             // Extracted interaction text
+	Annotation   *InteractionAnnotation `json:"annotation,omitempty"`                       // Extracted interaction annotation
 } //	@name	CompoundInteraction
 
 type compoundDBInteraction struct {
@@ -422,6 +455,9 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 	fetchDoses bool,
 	detailedDesc bool,
 	fetchText bool,
+	fetchAnnotations bool,
+	fetchAnnotationText bool,
+	lang string,
 ) ([]CompoundInteraction, error) {
 	if err := validate.Compounds(compounds, ic.Limits.InteractionDrugs); err != nil {
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
@@ -496,6 +532,18 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 		}
 	}
 
+	if fetchAnnotations {
+		annotationByInt, err := fetchInteractionAnnotations(db, dbInteractions, lang, fetchAnnotationText)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching interaction annotations: %w", err)
+		}
+		for i, interaction := range dbInteractions {
+			if annotation, ok := annotationByInt[interaction.KeyINT]; ok {
+				results[i].Annotation = annotation
+			}
+		}
+	}
+
 	if fetchDoses { //nolint:nestif // refactoring this is a mess
 		keyINT := []uint64{}
 		for _, interaction := range dbInteractions {
@@ -526,15 +574,16 @@ func fetchCompoundInteractions( //nolint:gocognit // splitting up this function 
 }
 
 type PZNInteraction struct {
-	KeyINT       uint64           `json:"-"`
-	Plausibility *string          `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
-	Relevance    *string          `json:"relevance" example:"minor"`                  // Relevance of the interaction
-	Frequency    *string          `json:"frequency" example:"common"`                 // Frequency of the interaction
-	Credibility  *string          `json:"credibility" example:"insufficient"`         // Credibility of the interaction
-	Direction    *string          `json:"direction" example:"undirected interaction"` // Direction of the interaction
-	PZNL         []string         `json:"pzn_left" example:"1234567"`                 // Victim PZN
-	PZNR         []string         `json:"pzn_right" example:"7654321"`                // Perpetrator PZN
-	Text         *InteractionText `json:"text,omitempty"`                             // Extracted interaction text
+	KeyINT       uint64                 `json:"-"`
+	Plausibility *string                `json:"plausibility" example:"plausible mechanism"` // Plausibility of the interaction
+	Relevance    *string                `json:"relevance" example:"minor"`                  // Relevance of the interaction
+	Frequency    *string                `json:"frequency" example:"common"`                 // Frequency of the interaction
+	Credibility  *string                `json:"credibility" example:"insufficient"`         // Credibility of the interaction
+	Direction    *string                `json:"direction" example:"undirected interaction"` // Direction of the interaction
+	PZNL         []string               `json:"pzn_left" example:"1234567"`                 // Victim PZN
+	PZNR         []string               `json:"pzn_right" example:"7654321"`                // Perpetrator PZN
+	Text         *InteractionText       `json:"text,omitempty"`                             // Extracted interaction text
+	Annotation   *InteractionAnnotation `json:"annotation,omitempty"`                       // Extracted interaction annotation
 } //	@name	PZNInteraction
 
 func fetchPznInteractions(
@@ -543,6 +592,9 @@ func fetchPznInteractions(
 	ic *InteractionController,
 	detailedDesc bool,
 	fetchText bool,
+	fetchAnnotations bool,
+	fetchAnnotationText bool,
+	lang string,
 ) ([]PZNInteraction, error) {
 	if err := validate.PZNs(pzns, 2, ic.Limits.InteractionDrugs); err != nil {
 		return nil, apierr.New(http.StatusBadRequest, err.Error())
@@ -604,6 +656,18 @@ func fetchPznInteractions(
 		for i := range results {
 			if text, ok := textByInt[results[i].KeyINT]; ok {
 				results[i].Text = text
+			}
+		}
+	}
+
+	if fetchAnnotations {
+		annotationByInt, err := fetchInteractionAnnotations(db, dbInteractions, lang, fetchAnnotationText)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching interaction annotations: %w", err)
+		}
+		for i := range results {
+			if annotation, ok := annotationByInt[results[i].KeyINT]; ok {
+				results[i].Annotation = annotation
 			}
 		}
 	}
@@ -782,6 +846,241 @@ func fetchInteractionTexts[T interface {
 	}
 
 	return textByInt, nil
+}
+
+func fetchInteractionAnnotations[T interface {
+	getKeyINT() uint64
+	getTextRef() *uint64
+}](db *sqlx.DB, interactions []T, lang string, includeEvidenceText bool) (map[uint64]*InteractionAnnotation, error) {
+	lang, err := normalizeInteractionAnnotationLang(lang)
+	if err != nil {
+		return nil, apierr.New(http.StatusBadRequest, err.Error())
+	}
+
+	textRefs := make([]string, 0, len(interactions))
+	intToTextRef := make(map[uint64]string, len(interactions))
+	seenTextRefs := make(map[string]struct{}, len(interactions))
+	for _, interaction := range interactions {
+		if interaction.getTextRef() == nil {
+			continue
+		}
+
+		textRef := fmt.Sprint(*interaction.getTextRef())
+		intToTextRef[interaction.getKeyINT()] = textRef
+		if _, exists := seenTextRefs[textRef]; exists {
+			continue
+		}
+		seenTextRefs[textRef] = struct{}{}
+		textRefs = append(textRefs, textRef)
+	}
+
+	if len(textRefs) == 0 {
+		return map[uint64]*InteractionAnnotation{}, nil
+	}
+
+	targetColumn := "interaction_target"
+	if lang == "english" {
+		targetColumn = "interaction_target_en"
+	}
+
+	columns := []string{
+		"id",
+		"annotation_source",
+		"annotation_date",
+		"interaction_type",
+		"interaction_mechanism",
+		fmt.Sprintf("%s AS interaction_target_localized", targetColumn),
+		"confidence_level",
+		"validation_status",
+	}
+	if includeEvidenceText {
+		columns = append(columns,
+			"evidence_type_keywords",
+			"evidence_mechanism_keywords",
+			"evidence_target_keywords",
+		)
+	}
+
+	queryBuilder := squirrel.Select(columns...).
+		From("ANNOTATION_ITX_C").
+		Where(squirrel.Eq{"id": textRefs})
+
+	query, args, _ := queryBuilder.ToSql()
+	var rows []struct {
+		ID                         string     `db:"id"`
+		AnnotationSource           *string    `db:"annotation_source"`
+		AnnotationDate             *time.Time `db:"annotation_date"`
+		InteractionType            *string    `db:"interaction_type"`
+		InteractionMechanism       *string    `db:"interaction_mechanism"`
+		InteractionTargetLocalized *string    `db:"interaction_target_localized"`
+		EvidenceTypeKeywords       *string    `db:"evidence_type_keywords"`
+		EvidenceMechanismKeywords  *string    `db:"evidence_mechanism_keywords"`
+		EvidenceTargetKeywords     *string    `db:"evidence_target_keywords"`
+		ConfidenceLevel            *string    `db:"confidence_level"`
+		ValidationStatus           *string    `db:"validation_status"`
+	}
+	if err := db.Select(&rows, query, args...); err != nil {
+		return nil, err
+	}
+
+	annotationByRef := make(map[string]*InteractionAnnotation, len(rows))
+	for _, row := range rows {
+		annotation := &InteractionAnnotation{
+			InteractionType:      strings.Join(localizeInteractionAnnotationTokens(stringValue(row.InteractionType), lang, interactionTypeLabels), "; "),
+			InteractionMechanism: localizeInteractionAnnotationTokens(stringValue(row.InteractionMechanism), lang, interactionMechanismLabels),
+			InteractionTarget:    parseAnnotationStringList(row.InteractionTargetLocalized),
+			ConfidenceLevel:      localizeInteractionAnnotationValue(stringValue(row.ConfidenceLevel), lang, confidenceLevelLabels),
+			ValidationStatus:     localizeInteractionAnnotationValue(stringValue(row.ValidationStatus), lang, validationStatusLabels),
+			AnnotationSource:     stringValue(row.AnnotationSource),
+			AnnotationDate:       dateValue(row.AnnotationDate),
+		}
+		if includeEvidenceText {
+			annotation.EvidenceType = parseAnnotationStringList(row.EvidenceTypeKeywords)
+			annotation.EvidenceMechanism = parseAnnotationStringList(row.EvidenceMechanismKeywords)
+			annotation.EvidenceTarget = parseAnnotationStringList(row.EvidenceTargetKeywords)
+		}
+		annotationByRef[row.ID] = annotation
+	}
+
+	annotationByInt := make(map[uint64]*InteractionAnnotation, len(intToTextRef))
+	for keyINT, textRef := range intToTextRef {
+		if annotation, ok := annotationByRef[textRef]; ok {
+			annotationByInt[keyINT] = annotation
+		}
+	}
+
+	return annotationByInt, nil
+}
+
+func normalizeInteractionAnnotationLang(lang string) (string, error) {
+	lang = strings.ToLower(strings.TrimSpace(lang))
+	if lang == "" || lang == "de" || lang == "german" {
+		return "german", nil
+	}
+	if lang == "en" || lang == "english" {
+		return "english", nil
+	}
+
+	return "", fmt.Errorf("invalid lang: must be german or english")
+}
+
+type localizedAnnotationLabel struct {
+	German  string
+	English string
+}
+
+var interactionTypeLabels = map[string]localizedAnnotationLabel{
+	"pharmacodynamic": {German: "pharmakodynamisch", English: "pharmacodynamic"},
+	"pharmacokinetic": {German: "pharmakokinetisch", English: "pharmacokinetic"},
+	"unknown":         {German: "unbekannt", English: "unknown"},
+}
+
+var interactionMechanismLabels = map[string]localizedAnnotationLabel{
+	"absorption_change":      {German: "Veränderung der Resorption", English: "absorption change"},
+	"additive_effect":        {German: "additive Wirkung", English: "additive effect"},
+	"antagonistic_effect":    {German: "antagonistische Wirkung", English: "antagonistic effect"},
+	"distribution_change":    {German: "Veränderung der Verteilung", English: "distribution change"},
+	"elimination_change":     {German: "Veränderung der Elimination", English: "elimination change"},
+	"enzyme_induction":       {German: "Enzyminduktion", English: "enzyme induction"},
+	"enzyme_inhibition":      {German: "Enzymhemmung", English: "enzyme inhibition"},
+	"pd_decrease":            {German: "verminderte pharmakodynamische Wirkung", English: "decreased pharmacodynamic effect"},
+	"pd_increase":            {German: "verstärkte pharmakodynamische Wirkung", English: "increased pharmacodynamic effect"},
+	"qtc_prolongation":       {German: "QTc-Verlängerung", English: "QTc prolongation"},
+	"synergistic_effect":     {German: "synergistische Wirkung", English: "synergistic effect"},
+	"transporter_induction":  {German: "Transporterinduktion", English: "transporter induction"},
+	"transporter_inhibition": {German: "Transporterhemmung", English: "transporter inhibition"},
+	"unknown":                {German: "unbekannt", English: "unknown"},
+}
+
+var confidenceLevelLabels = map[string]localizedAnnotationLabel{
+	"high":   {German: "hoch", English: "high"},
+	"medium": {German: "mittel", English: "medium"},
+	"low":    {German: "niedrig", English: "low"},
+}
+
+var validationStatusLabels = map[string]localizedAnnotationLabel{
+	"valid": {German: "validiert", English: "valid"},
+}
+
+func localizeInteractionAnnotationTokens(value string, lang string, labels map[string]localizedAnnotationLabel) []string {
+	tokens := splitSemicolonValues(value)
+	result := make([]string, 0, len(tokens))
+	for _, token := range tokens {
+		result = append(result, localizeInteractionAnnotationValue(token, lang, labels))
+	}
+
+	return result
+}
+
+func localizeInteractionAnnotationValue(value string, lang string, labels map[string]localizedAnnotationLabel) string {
+	label, exists := labels[strings.TrimSpace(value)]
+	if !exists {
+		return value
+	}
+	if lang == "english" {
+		return label.English
+	}
+
+	return label.German
+}
+
+func parseAnnotationStringList(value *string) []string {
+	if value == nil {
+		return nil
+	}
+
+	raw := strings.TrimSpace(*value)
+	if raw == "" {
+		return nil
+	}
+
+	var list []string
+	if err := json.Unmarshal([]byte(raw), &list); err == nil {
+		return list
+	}
+
+	var single string
+	if err := json.Unmarshal([]byte(raw), &single); err == nil {
+		if single == "" {
+			return nil
+		}
+		return []string{single}
+	}
+
+	return []string{strings.Trim(raw, `"`)}
+}
+
+func splitSemicolonValues(value string) []string {
+	if value == "" {
+		return nil
+	}
+
+	parts := strings.Split(value, ";")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			result = append(result, part)
+		}
+	}
+
+	return result
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+
+	return *value
+}
+
+func dateValue(value *time.Time) string {
+	if value == nil {
+		return ""
+	}
+
+	return value.Format("2006-01-02")
 }
 
 func (d dbInteraction) getKeyINT() uint64 {

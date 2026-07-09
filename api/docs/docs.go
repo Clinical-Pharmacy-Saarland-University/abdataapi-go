@@ -463,6 +463,24 @@ const docTemplate = `{
                         "description": "Fetch interaction text",
                         "name": "text",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch language-specific interaction annotation",
+                        "name": "annotations",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch annotation evidence text",
+                        "name": "annotation_text",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Annotation language: german or english (default: german)",
+                        "name": "lang",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -605,6 +623,24 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "Fetch interaction text",
                         "name": "text",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch language-specific interaction annotation",
+                        "name": "annotations",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Fetch annotation evidence text",
+                        "name": "annotation_text",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Annotation language: german or english (default: german)",
+                        "name": "lang",
                         "in": "query"
                     }
                 ],
@@ -894,7 +930,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Fuzzy-search products by one or more product names and return matching PZNs with active compounds grouped by input.",
+                "description": "Fuzzy-search products by one or more product names and return matching PZNs with active compounds grouped by input. Standard notes are included only when notes=true.",
                 "produces": [
                     "application/json"
                 ],
@@ -915,6 +951,19 @@ const docTemplate = `{
                         "description": "Maximum number of products to return per input (default: 20, max: 100)",
                         "name": "limit",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include standard notes",
+                        "name": "notes",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language for standard note categories and text: german or english (default: german)",
+                        "name": "lang",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -929,6 +978,58 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad request (e.g. missing name)"
+                    },
+                    "500": {
+                        "description": "Internal server error"
+                    }
+                }
+            }
+        },
+        "/product/standardnotes/pzns": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Get Standardhinweise for one or more PZNs. Products without Standardhinweise are returned with an empty standard_notes array.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "List standard notes for PZNs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma separated string of PZNs",
+                        "name": "pzns",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language for standard note categories and text: german or english (default: german)",
+                        "name": "lang",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of PZNs with standard notes",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/pzncontroller.ProductStandardNotes"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request (e.g. invalid PZNs)"
+                    },
+                    "404": {
+                        "description": "PZN(s) not found"
                     },
                     "500": {
                         "description": "Internal server error"
@@ -1733,6 +1834,14 @@ const docTemplate = `{
         "CompoundInteraction": {
             "type": "object",
             "properties": {
+                "annotation": {
+                    "description": "Extracted interaction annotation",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InteractionAnnotation"
+                        }
+                    ]
+                },
                 "compounds_left": {
                     "description": "Victim compound(s)",
                     "type": "array",
@@ -1809,6 +1918,16 @@ const docTemplate = `{
                 "id"
             ],
             "properties": {
+                "annotation_text": {
+                    "description": "Fetch annotation evidence text",
+                    "type": "boolean",
+                    "example": true
+                },
+                "annotations": {
+                    "description": "Fetch interaction annotation",
+                    "type": "boolean",
+                    "example": true
+                },
                 "compounds": {
                     "description": "Array of compounds",
                     "type": "array",
@@ -1834,6 +1953,11 @@ const docTemplate = `{
                     "description": "ID of the query",
                     "type": "string",
                     "example": "1"
+                },
+                "lang": {
+                    "description": "Annotation language",
+                    "type": "string",
+                    "example": "english"
                 },
                 "text": {
                     "description": "Fetch interaction text",
@@ -2003,6 +2127,56 @@ const docTemplate = `{
                             "$ref": "#/definitions/cfg.MetaConfig"
                         }
                     ]
+                }
+            }
+        },
+        "InteractionAnnotation": {
+            "type": "object",
+            "properties": {
+                "annotation_date": {
+                    "type": "string"
+                },
+                "annotation_source": {
+                    "type": "string"
+                },
+                "confidence_level": {
+                    "type": "string"
+                },
+                "evidence_mechanism": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "evidence_target": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "evidence_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "interaction_mechanism": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "interaction_target": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "interaction_type": {
+                    "type": "string"
+                },
+                "validation_status": {
+                    "type": "string"
                 }
             }
         },
@@ -2346,6 +2520,14 @@ const docTemplate = `{
         "PZNInteraction": {
             "type": "object",
             "properties": {
+                "annotation": {
+                    "description": "Extracted interaction annotation",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/InteractionAnnotation"
+                        }
+                    ]
+                },
                 "credibility": {
                     "description": "Credibility of the interaction",
                     "type": "string",
@@ -2408,6 +2590,16 @@ const docTemplate = `{
                 "pzns"
             ],
             "properties": {
+                "annotation_text": {
+                    "description": "Fetch annotation evidence text",
+                    "type": "boolean",
+                    "example": true
+                },
+                "annotations": {
+                    "description": "Fetch interaction annotation",
+                    "type": "boolean",
+                    "example": true
+                },
                 "details": {
                     "description": "Detailed interaction descriptions",
                     "type": "boolean",
@@ -2417,6 +2609,11 @@ const docTemplate = `{
                     "description": "ID of the query",
                     "type": "string",
                     "example": "1"
+                },
+                "lang": {
+                    "description": "Annotation language",
+                    "type": "string",
+                    "example": "english"
                 },
                 "pzns": {
                     "description": "Array of PZNs",
@@ -2803,6 +3000,54 @@ const docTemplate = `{
                 },
                 "pzn": {
                     "type": "string"
+                },
+                "standard_notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.StandardNoteGroup"
+                    }
+                }
+            }
+        },
+        "pzncontroller.ProductStandardNotes": {
+            "type": "object",
+            "properties": {
+                "product_name": {
+                    "type": "string"
+                },
+                "pzn": {
+                    "type": "string"
+                },
+                "standard_notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.StandardNoteGroup"
+                    }
+                }
+            }
+        },
+        "pzncontroller.StandardNote": {
+            "type": "object",
+            "properties": {
+                "patient_info": {
+                    "type": "boolean"
+                },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "pzncontroller.StandardNoteGroup": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "notes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.StandardNote"
+                    }
                 }
             }
         },

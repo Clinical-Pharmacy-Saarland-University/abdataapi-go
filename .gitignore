@@ -27,3 +27,7 @@ go.work.sum
 tests/.dev_env
 /api/buildcache
 /api/.gocache
+/node_modules/.pnpm/@oai+artifact-tool@file+loc_355352c5da6bea788b63663dc32716cc/node_modules/@oai/artifact-tool/node_modules
+/node_modules
+/outputs/interaction_overview
+/tools

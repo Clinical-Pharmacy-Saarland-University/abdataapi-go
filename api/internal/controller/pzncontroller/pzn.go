@@ -33,11 +33,13 @@ func NewPZNController(resourceHandle *handle.ResourceHandle) *PZNController {
 }
 
 // @Summary		Search products by name
-// @Description	Fuzzy-search products by one or more product names and return matching PZNs with active compounds grouped by input.
+// @Description	Fuzzy-search products by one or more product names and return matching PZNs with active compounds grouped by input. Standard notes are included only when notes=true.
 // @Tags			Product
 // @Produce		json
-// @Param			name	query	string					true	"Comma-separated product name search terms; encode literal commas as %2C"	example:"Delix+2%2C5,Plavix,Ramilich"
-// @Param			limit	query	int						false	"Maximum number of products to return per input (default: 20, max: 100)"
+// @Param			name	query	string				true	"Comma-separated product name search terms; encode literal commas as %2C"	example:"Delix+2%2C5,Plavix,Ramilich"
+// @Param			limit	query	int					false	"Maximum number of products to return per input (default: 20, max: 100)"
+// @Param			notes	query	bool				false	"Include standard notes"	default(false)
+// @Param			lang	query	string				false	"Language for standard note categories and text: german or english (default: german)"
 // @Success		200		{array}	ProductSearchGroup	"Matching products with active compounds grouped by input"
 // @Failure		400		"Bad request (e.g. missing name)"
 // @Failure		500		"Internal server error"
@@ -46,7 +48,9 @@ func NewPZNController(resourceHandle *handle.ResourceHandle) *PZNController {
 // @Security		Bearer
 func (pc *PZNController) GetProductSearch(c *gin.Context) {
 	var query struct {
-		Limit int `form:"limit"`
+		Limit int    `form:"limit"`
+		Notes bool   `form:"notes"`
+		Lang  string `form:"lang"`
 	}
 	if !handle.QueryBind(c, &query) {
 		return
@@ -72,8 +76,13 @@ func (pc *PZNController) GetProductSearch(c *gin.Context) {
 	if limit > 100 {
 		limit = 100
 	}
+	lang, err := normalizeStandardNoteLang(query.Lang)
+	if err != nil {
+		handle.BadRequestError(c, err.Error())
+		return
+	}
 
-	result, err := fetchProductsByNames(names, limit, pc.DB)
+	result, err := fetchProductsByNames(names, limit, query.Notes, lang, pc.DB)
 	if err != nil {
 		handle.Error(c, err)
 		return
@@ -88,15 +97,16 @@ type ProductSearchGroup struct {
 }
 
 type ProductSearchResult struct {
-	ProductName     string   `json:"product_name"`
-	PZN             string   `json:"pzn"`
-	ActiveCompounds []string `json:"active_compounds"`
+	ProductName     string              `json:"product_name"`
+	PZN             string              `json:"pzn"`
+	ActiveCompounds []string            `json:"active_compounds"`
+	StandardNotes   []StandardNoteGroup `json:"standard_notes,omitempty"`
 }
 
-func fetchProductsByNames(names []string, limit int, db *sqlx.DB) ([]ProductSearchGroup, error) {
+func fetchProductsByNames(names []string, limit int, includeNotes bool, lang string, db *sqlx.DB) ([]ProductSearchGroup, error) {
 	results := make([]ProductSearchGroup, 0, len(names))
 	for _, name := range names {
-		products, err := fetchProductsByName(name, limit, db)
+		products, err := fetchProductsByName(name, limit, includeNotes, lang, db)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +119,7 @@ func fetchProductsByNames(names []string, limit int, db *sqlx.DB) ([]ProductSear
 	return results, nil
 }
 
-func fetchProductsByName(name string, limit int, db *sqlx.DB) ([]ProductSearchResult, error) {
+func fetchProductsByName(name string, limit int, includeNotes bool, lang string, db *sqlx.DB) ([]ProductSearchResult, error) {
 	productQuery := squirrel.Select(
 		"FAM_DB.Key_FAM",
 		"FAM_DB.Produktname",
@@ -170,6 +180,14 @@ func fetchProductsByName(name string, limit int, db *sqlx.DB) ([]ProductSearchRe
 	if err := db.Select(&compoundRows, query, args...); err != nil {
 		return nil, fmt.Errorf("error fetching active compounds for product search: %w", err)
 	}
+	standardNotesByFAM := map[uint64][]StandardNoteGroup{}
+	if includeNotes {
+		var err error
+		standardNotesByFAM, err = fetchStandardNotesByFAM(fams, lang, db)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	compoundsByFAM := make(map[uint64][]string, len(products))
 	for _, product := range products {
@@ -215,11 +233,15 @@ func fetchProductsByName(name string, limit int, db *sqlx.DB) ([]ProductSearchRe
 
 	results := make([]ProductSearchResult, 0, len(products))
 	for _, product := range products {
-		results = append(results, ProductSearchResult{
+		result := ProductSearchResult{
 			ProductName:     product.ProductName,
 			PZN:             product.PZN,
 			ActiveCompounds: compoundsByFAM[product.KeyFAM],
-		})
+		}
+		if includeNotes {
+			result.StandardNotes = standardNotesByFAM[product.KeyFAM]
+		}
+		results = append(results, result)
 	}
 
 	return results, nil
@@ -671,4 +693,254 @@ func fetchProductInfo(pzns []string, db *sqlx.DB, translate func(*int, bool) *st
 	}
 
 	return productInfos, nil
+}
+
+// STANDARD NOTES
+
+// @Summary		List standard notes for PZNs
+// @Description	Get Standardhinweise for one or more PZNs. Products without Standardhinweise are returned with an empty standard_notes array.
+// @Tags			Product
+// @Produce		json
+// @Param			pzns	query	string					true	"Comma separated string of PZNs"	example:"1234567,7654321"
+// @Param			lang	query	string					false	"Language for standard note categories and text: german or english (default: german)"
+// @Success		200		{array}	ProductStandardNotes	"List of PZNs with standard notes"
+// @Failure		400		"Bad request (e.g. invalid PZNs)"
+// @Failure		404		"PZN(s) not found"
+// @Failure		500		"Internal server error"
+// @Router			/product/standardnotes/pzns [get]
+//
+// @Security		Bearer
+func (pc *PZNController) GetStandardNotes(c *gin.Context) {
+	type Query struct {
+		PZNs string `form:"pzns" binding:"required" example:"1234567,7654321"`
+		Lang string `form:"lang"`
+	}
+
+	var query Query
+	if !handle.QueryBind(c, &query) {
+		return
+	}
+
+	pzns := strings.Split(query.PZNs, ",")
+	lang, err := normalizeStandardNoteLang(query.Lang)
+	if err != nil {
+		handle.BadRequestError(c, err.Error())
+		return
+	}
+
+	result, err := fetchStandardNotes(pzns, lang, pc.DB)
+	if err != nil {
+		handle.Error(c, err)
+		return
+	}
+
+	handle.Success(c, result)
+}
+
+type ProductStandardNotes struct {
+	PZN           string              `json:"pzn"`
+	ProductName   string              `json:"product_name"`
+	StandardNotes []StandardNoteGroup `json:"standard_notes"`
+}
+
+type StandardNoteGroup struct {
+	Category string         `json:"category"`
+	Notes    []StandardNote `json:"notes"`
+}
+
+type StandardNote struct {
+	PatientInfo bool   `json:"patient_info"`
+	Text        string `json:"text"`
+}
+
+func fetchStandardNotesByFAM(fams []uint64, lang string, db *sqlx.DB) (map[uint64][]StandardNoteGroup, error) {
+	notesByFAM := make(map[uint64][]StandardNoteGroup, len(fams))
+	for _, fam := range fams {
+		notesByFAM[fam] = []StandardNoteGroup{}
+	}
+	if len(fams) == 0 {
+		return notesByFAM, nil
+	}
+
+	queryBuilder := squirrel.Select(
+		"FAS_DB.Key_FAM",
+		"STA_DB.Key_STA",
+		"STA_DB.Patienteninfo",
+		"STA_DB.Text AS standard_text").
+		Distinct().
+		From("FAS_DB").
+		Join("STA_DB ON STA_DB.Key_STA = FAS_DB.Key_STA").
+		Where(squirrel.Eq{"FAS_DB.Key_FAM": fams}).
+		OrderBy("FAS_DB.Key_FAM", "STA_DB.Key_STA")
+
+	query, args, _ := queryBuilder.ToSql()
+	var rows []struct {
+		KeyFAM      uint64  `db:"Key_FAM"`
+		KeySTA      string  `db:"Key_STA"`
+		PatientInfo *int    `db:"Patienteninfo"`
+		Text        *string `db:"standard_text"`
+	}
+
+	if err := db.Select(&rows, query, args...); err != nil {
+		return nil, fmt.Errorf("error fetching standard notes by product family: %w", err)
+	}
+
+	for _, row := range rows {
+		if row.Text == nil {
+			continue
+		}
+
+		patientInfo := false
+		if row.PatientInfo != nil {
+			patientInfo = *row.PatientInfo == 1
+		}
+
+		note := StandardNote{
+			PatientInfo: patientInfo,
+			Text:        translateStandardNoteText(row.KeySTA, *row.Text, lang),
+		}
+		notesByFAM[row.KeyFAM] = appendStandardNoteGroup(notesByFAM[row.KeyFAM], row.KeySTA, note, lang)
+	}
+
+	return notesByFAM, nil
+}
+
+func appendStandardNoteGroup(groups []StandardNoteGroup, keySTA string, note StandardNote, lang string) []StandardNoteGroup {
+	categoryCode := standardNoteCategoryCode(keySTA)
+	for i := range groups {
+		if groups[i].Category == standardNoteCategoryLabel(categoryCode, lang) {
+			groups[i].Notes = append(groups[i].Notes, note)
+			return groups
+		}
+	}
+
+	return append(groups, StandardNoteGroup{
+		Category: standardNoteCategoryLabel(categoryCode, lang),
+		Notes:    []StandardNote{note},
+	})
+}
+
+func standardNoteCategoryCode(keySTA string) string {
+	if keySTA == "" {
+		return ""
+	}
+
+	return strings.ToUpper(keySTA[:1])
+}
+
+func standardNoteCategoryLabel(categoryCode string, lang string) string {
+	switch categoryCode {
+	case "A":
+		if lang == "english" {
+			return "Application and dosage"
+		}
+		return "Anwendung und Dosierung"
+	case "H":
+		if lang == "english" {
+			return "Excipients"
+		}
+		return "Hilfsstoffe"
+	case "L":
+		if lang == "english" {
+			return "Lactation"
+		}
+		return "Laktation"
+	case "S":
+		if lang == "english" {
+			return "Pregnancy"
+		}
+		return "Schwangerschaft"
+	case "W":
+		if lang == "english" {
+			return "General note or warning"
+		}
+		return "Allgemeiner Hinweis oder Warnhinweis"
+	default:
+		if lang == "english" {
+			return "Unknown"
+		}
+		return "Unbekannt"
+	}
+}
+
+func normalizeStandardNoteLang(lang string) (string, error) {
+	lang = strings.ToLower(strings.TrimSpace(lang))
+	if lang == "" {
+		return "german", nil
+	}
+	if lang == "de" {
+		return "german", nil
+	}
+	if lang == "en" {
+		return "english", nil
+	}
+	if lang != "german" && lang != "english" {
+		return "", fmt.Errorf("invalid lang: must be german or english")
+	}
+
+	return lang, nil
+}
+
+func fetchStandardNotes(pzns []string, lang string, db *sqlx.DB) ([]ProductStandardNotes, error) {
+	normalizedPZNs := make([]string, 0, len(pzns))
+	for _, pzn := range pzns {
+		pzn = strings.TrimSpace(pzn)
+		if err := validate.PZN(pzn); err != nil {
+			return nil, apierr.New(http.StatusBadRequest, fmt.Sprintf("Invalid PZN: %s", pzn))
+		}
+		normalizedPZNs = append(normalizedPZNs, pzn)
+	}
+	pzns = normalizedPZNs
+
+	productQuery := squirrel.Select(
+		"PAE_DB.PZN",
+		"FAM_DB.Key_FAM",
+		"FAM_DB.Produktname").
+		Distinct().
+		From("PAE_DB").
+		Join("FAM_DB ON FAM_DB.Key_FAM = PAE_DB.Key_FAM").
+		Where(squirrel.Eq{"PAE_DB.PZN": pzns}).
+		OrderBy("PAE_DB.PZN")
+
+	query, args, _ := productQuery.ToSql()
+	var products []struct {
+		PZN         string `db:"PZN"`
+		KeyFAM      uint64 `db:"Key_FAM"`
+		ProductName string `db:"Produktname"`
+	}
+
+	if err := db.Select(&products, query, args...); err != nil {
+		return nil, fmt.Errorf("error fetching products for standard notes: %w", err)
+	}
+	if len(products) == 0 {
+		return nil, apierr.New(http.StatusNotFound, "PZN not found")
+	}
+
+	fams := make([]uint64, 0, len(products))
+	for _, product := range products {
+		fams = append(fams, product.KeyFAM)
+	}
+	standardNotesByFAM, err := fetchStandardNotesByFAM(fams, lang, db)
+	if err != nil {
+		return nil, err
+	}
+
+	resultByPZN := make(map[string]ProductStandardNotes, len(products))
+	for _, product := range products {
+		resultByPZN[product.PZN] = ProductStandardNotes{
+			PZN:           product.PZN,
+			ProductName:   product.ProductName,
+			StandardNotes: standardNotesByFAM[product.KeyFAM],
+		}
+	}
+
+	results := make([]ProductStandardNotes, 0, len(resultByPZN))
+	for _, pzn := range pzns {
+		pzn = strings.TrimSpace(pzn)
+		if result, exists := resultByPZN[pzn]; exists {
+			results = append(results, result)
+		}
+	}
+
+	return results, nil
 }

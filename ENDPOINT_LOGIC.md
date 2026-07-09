@@ -187,11 +187,15 @@ These also use the same GORM user tables.
 
 - Input: comma-separated or repeated `name=...` or `q=...`, optional `limit`.
 - Literal commas inside one product name must be URL-encoded as `%2C`, for example `name=Delix+2%2C5,Plavix,Ramilich`.
+- Optional `notes=true` includes `Standardhinweise`. By default, product search does not fetch or return standard notes.
+- Optional `lang=german|english` controls `Standardhinweise` category labels and note text.
 - Logic:
   - Fuzzy-matches `FAM_DB.Produktname` for each input name.
   - Returns one response group per input name.
   - Limits product/PZN hits per input before expanding active compounds.
   - Fetches active ingredients for matching `Key_FAM` values.
+  - If `notes=true`, fetches `Standardhinweise` for matching `Key_FAM` values and groups them by `Key_STA` prefix category.
+  - For `lang=english`, translates standard-note text by `Key_STA`.
   - Uses the same active-compound filtering as `/product/list`:
     - `FAI_DB.Stofftyp = 1`
     - preferred `SNA_DB` names only
@@ -202,6 +206,8 @@ These also use the same GORM user tables.
   - `FAI_DB`
   - `VSS_DB`
   - `SNA_DB`
+  - `FAS_DB`
+  - `STA_DB`
 
 ### `GET /product/activecompounds/pzns`
 
@@ -225,6 +231,31 @@ These also use the same GORM user tables.
 - Tables:
   - `PAE_DB`
   - `FAM_DB`
+
+### `GET /product/standardnotes/pzns`
+
+- Input PZNs are validated first.
+- Optional `lang=german|english` controls category labels and note text.
+- Logic:
+  - Resolves `PZN -> Key_FAM`.
+  - Reads `Standardhinweise` through `FAS_DB.Key_STA`.
+  - Groups notes by the `Key_STA` prefix category:
+    - `A` Anwendung und Dosierung / Application and dosage
+    - `H` Hilfsstoffe / Excipients
+    - `L` Laktation / Lactation
+    - `S` Schwangerschaft / Pregnancy
+    - `W` Allgemeiner Hinweis oder Warnhinweis / General note or warning
+  - Returns products without standard notes with an empty `standard_notes` array.
+  - For `lang=english`, translates standard-note text by `Key_STA`.
+- Tables:
+  - `PAE_DB`
+  - `FAM_DB`
+  - `FAS_DB`
+  - `STA_DB`
+- Key joins:
+  - `PAE_DB -> FAM_DB` by `Key_FAM`
+  - `FAM_DB -> FAS_DB` by `Key_FAM`
+  - `FAS_DB -> STA_DB` by `Key_STA`
 
 ## QT
 
@@ -356,6 +387,9 @@ These also use the same GORM user tables.
   - Optional:
     - `doses=true` fetches dose/formulation details from `FZI_C`, `FAI_DB`, `FAM_DB`
     - `text=true` fetches text blocks from `ITX_C` via `INT_C.Textverweis`
+    - `annotations=true` fetches annotation metadata from `ANNOTATION_ITX_C` via `INT_C.Textverweis`
+    - `annotation_text=true` includes large annotation evidence keyword fields
+    - `lang=english|german` controls annotation type, mechanism, target, confidence, and validation labels
 - Core tables:
   - `SNA_DB`
   - `VSS_DB`
@@ -363,6 +397,7 @@ These also use the same GORM user tables.
   - `INT_C`
 - Optional tables:
   - `ITX_C`
+  - `ANNOTATION_ITX_C`
   - `FZI_C`
   - `FAI_DB`
   - `FAM_DB`
@@ -379,12 +414,16 @@ These also use the same GORM user tables.
   - Maps `Key_FAM` buckets back to input PZNs.
   - Optional:
     - `text=true` fetches text blocks from `ITX_C` via `INT_C.Textverweis`
+    - `annotations=true` fetches annotation metadata from `ANNOTATION_ITX_C` via `INT_C.Textverweis`
+    - `annotation_text=true` includes large annotation evidence keyword fields
+    - `lang=english|german` controls annotation type, mechanism, target, confidence, and validation labels
 - Tables:
   - `PAE_DB`
   - `FZI_C`
   - `SZI_C`
   - `INT_C`
   - `ITX_C` when text is requested
+  - `ANNOTATION_ITX_C` when annotations are requested
 
 ## Swagger / Root
 

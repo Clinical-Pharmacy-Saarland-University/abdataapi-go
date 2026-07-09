@@ -1,40 +1,30 @@
 meta {
-  name: Product Search
+  name: PZN Standard Notes
   type: http
-  seq: 2
+  seq: 7
 }
 
 get {
-  url: {{url}}/api/v1/product/search?name=Delix+2%2C5,Plavix,Ramilich&limit=3&notes=true&lang=english
+  url: {{url}}/api/v1/product/standardnotes/pzns?pzns=00639943,06995774&lang=english
   body: none
   auth: inherit
 }
 
 params:query {
-  name: Delix 2%2C5,Plavix,Ramilich
-  limit: 3
-  notes: true
+  pzns: 00639943,06995774
   lang: english
 }
 
 tests {
-  test("returns product matches grouped by input name", function() {
+  test("returns standard notes grouped by PZN", function() {
     const body = res.getBody();
     expect(res.getStatus()).to.equal(200);
     expect(body.status).to.equal("success");
     expect(Array.isArray(body.data)).to.equal(true);
-    expect(body.data.length).to.equal(3);
 
-    const group = body.data[0];
-    expect(group.input).to.equal("Delix 2,5");
-    expect(Array.isArray(group.results)).to.equal(true);
-    expect(group.results.length).to.be.greaterThan(0);
-
-    const product = group.results[0];
-    expect(product.product_name).to.be.a("string");
+    const product = body.data[0];
     expect(product.pzn).to.be.a("string");
-    expect(Array.isArray(product.active_compounds)).to.equal(true);
-    expect(product.active_compounds.length).to.be.greaterThan(0);
+    expect(product.product_name).to.be.a("string");
     expect(Array.isArray(product.standard_notes)).to.equal(true);
 
     if (product.standard_notes.length > 0) {
