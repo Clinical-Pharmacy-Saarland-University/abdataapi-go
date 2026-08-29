@@ -118,11 +118,11 @@ definitions:
   CompoundInteractionPostQuery:
     properties:
       annotation_text:
-        description: Fetch annotation evidence text
+        description: AnnotationText includes large annotation evidence keyword fields.
         example: true
         type: boolean
       annotations:
-        description: Fetch interaction annotation
+        description: Annotations fetches compact interaction annotation metadata.
         example: true
         type: boolean
       compounds:
@@ -840,10 +840,36 @@ definitions:
           type: string
         type: array
     type: object
+  pzncontroller.ProductATCCode:
+    properties:
+      code:
+        type: string
+      label_en:
+        type: string
+      level:
+        type: integer
+      source:
+        type: string
+    type: object
+  pzncontroller.ProductIndication:
+    properties:
+      atc_codes:
+        items:
+          $ref: '#/definitions/pzncontroller.ProductATCCode'
+        type: array
+      language:
+        type: string
+      name:
+        type: string
+    type: object
   pzncontroller.ProductInfo:
     properties:
       category:
         type: string
+      indications:
+        items:
+          $ref: '#/definitions/pzncontroller.ProductIndication'
+        type: array
       is_combination:
         type: boolean
       product_name:
@@ -872,6 +898,10 @@ definitions:
       active_compounds:
         items:
           type: string
+        type: array
+      indications:
+        items:
+          $ref: '#/definitions/pzncontroller.ProductIndication'
         type: array
       product_name:
         type: string
@@ -1613,12 +1643,23 @@ paths:
       - Product
   /product/info/pzns:
     get:
-      description: Get product info (is_combination, category) for one or more PZNs.
+      description: Get product info for one or more PZNs. Indications are included
+        only when indications=true.
       parameters:
       - description: Comma separated string of PZNs
         in: query
         name: pzns
         required: true
+        type: string
+      - default: false
+        description: Include indications and the complete ATC hierarchy
+        in: query
+        name: indications
+        type: boolean
+      - description: 'Language for reviewed indication names and ATC labels: german
+          or english (default: german)'
+        in: query
+        name: lang
         type: string
       produces:
       - application/json
@@ -1660,8 +1701,13 @@ paths:
         in: query
         name: notes
         type: boolean
-      - description: 'Language for standard note categories and text: german or english
-          (default: german)'
+      - default: false
+        description: Include indications and the complete ATC hierarchy
+        in: query
+        name: indications
+        type: boolean
+      - description: 'Language for standard notes, reviewed indication names, and
+          ATC labels: german or english (default: german)'
         in: query
         name: lang
         type: string

@@ -189,13 +189,19 @@ These also use the same GORM user tables.
 - Input: comma-separated or repeated `name=...` or `q=...`, optional `limit`.
 - Literal commas inside one product name must be URL-encoded as `%2C`, for example `name=Delix+2%2C5,Plavix,Ramilich`.
 - Optional `notes=true` includes `Standardhinweise`. By default, product search does not fetch or return standard notes.
-- Optional `lang=german|english` controls `Standardhinweise` category labels and note text.
+- Optional `indications=true` includes ABDA indications and the complete ATC hierarchy. By default, product search does not fetch or return indications.
+- Optional `lang=german|english` controls `Standardhinweise`, indication names, and ATC labels. English indication names are used only for reviewed rows in `TRANSLATION_INR_C`. An indication stays German when no reviewed translation exists.
 - Logic:
   - Fuzzy-matches `FAM_DB.Produktname` for each input name.
   - Returns one response group per input name.
   - Limits product/PZN hits per input before expanding active compounds.
   - Fetches active ingredients for matching `Key_FAM` values.
   - If `notes=true`, fetches `Standardhinweise` for matching `Key_FAM` values and groups them by `Key_STA` prefix category.
+  - If `indications=true`, fetches `Key_IND_Haupt`, `Key_IND_Neben`, `Key_ATC`, and `Key_ATCA` for matching `Key_FAM` values.
+  - Expands indication links through `INV_DB` and names through `IND_DB`/`INR_DB`.
+  - With `lang=english`, uses `TRANSLATION_INR_C` rows with status `valid` or `corrected` and nonempty reviewer metadata.
+  - Derives ATC hierarchy levels 1 to 5 from each full ATC code.
+  - With `lang=english`, adds English WHO ATC labels from `who_atc_mapping` when a local mapping row exists.
   - For `lang=english`, translates standard-note text by `Key_STA`.
   - Uses the same active-compound filtering as `/product/list`:
     - `FAI_DB.Stofftyp = 1`
@@ -209,6 +215,11 @@ These also use the same GORM user tables.
   - `SNA_DB`
   - `FAS_DB`
   - `STA_DB`
+  - `IND_DB`
+  - `INR_DB`
+  - `INV_DB`
+  - `who_atc_mapping`
+  - `TRANSLATION_INR_C`
 
 ### `GET /product/activecompounds/pzns`
 
@@ -227,11 +238,23 @@ These also use the same GORM user tables.
 ### `GET /product/info/pzns`
 
 - Input PZNs are validated first.
+- Optional `indications=true` includes ABDA indications and the complete ATC hierarchy. By default, product info does not fetch or return indications.
+- Optional `lang=german|english` validates the requested output language. With `lang=english`, the endpoint uses reviewed English indication names and English WHO ATC labels when they exist. Missing indication translations stay German.
 - Logic:
   - Resolves product family and product group.
+  - If `indications=true`, fetches `Key_IND_Haupt`, `Key_IND_Neben`, `Key_ATC`, and `Key_ATCA`.
+  - Expands indication links through `INV_DB` and names through `IND_DB`/`INR_DB`.
+  - With `lang=english`, uses `TRANSLATION_INR_C` rows with status `valid` or `corrected` and nonempty reviewer metadata.
+  - Derives ATC hierarchy levels 1 to 5 from each full ATC code.
+  - With `lang=english`, adds English WHO ATC labels from `who_atc_mapping` when a local mapping row exists.
 - Tables:
   - `PAE_DB`
   - `FAM_DB`
+  - `IND_DB`
+  - `INR_DB`
+  - `INV_DB`
+  - `who_atc_mapping`
+  - `TRANSLATION_INR_C`
 
 ### `GET /product/standardnotes/pzns`
 

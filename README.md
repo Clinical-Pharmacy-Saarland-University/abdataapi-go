@@ -134,6 +134,72 @@ When `ABDA_TEST_HOST` is unset the integration suite skips cleanly, so the defau
 
 You need a MySQL database with data from [ABDA](https://abdata.de/). The database is proprietary and not included in this or other repositories. If you have access to the ABDA database, you can use [https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db](https://github.com/Clinical-Pharmacy-Saarland-University/abdata.sql.db) to export the data to a MySQL database.
 
+### WHO ATC Mapping
+
+Product indication output can add the five-level ATC hierarchy with English labels from `who_atc_mapping`. The API creates this table during migration, but it does not include WHO data.
+
+Use an official WHOCC/FHI ATC source snapshot. Convert it to CSV with these columns:
+
+```text
+atc_code,level,label_en,source_year,source_url
+```
+
+Then import it:
+
+```powershell
+./api/tools/import_who_atc_mapping.ps1 -CsvPath ./outputs/who_atc_mapping.csv -MySqlDatabase abda -MySqlHost 127.0.0.1 -MySqlUser mysqluser
+```
+
+You can also fill the mapping table from the official public index. The script reads the full ATC codes from `FAM_DB` and imports all parent levels:
+
+```powershell
+./api/tools/download_who_atc_mapping.ps1 -MySqlDatabase abda -MySqlHost 127.0.0.1 -MySqlUser mysqluser
+```
+
+The official source is the WHOCC/FHI ATC/DDD Index: https://atcddd.fhi.no/atc_ddd_index/.
+
+For example, `C09AA05` imports `C`, `C09`, `C09A`, `C09AA`, and `C09AA05`.
+
+### INR Translation Review
+
+`TRANSLATION_INR_C` follows the metadata pattern of `ANNOTATION_ITX_C`. It stores the translation source and date, confidence, validation status, reviewer, review date, corrected English text, and review notes.
+
+Generate Qwen translations with an approved private endpoint:
+
+```powershell
+$env:OPENAI_BASE_URL = "http://approved-host:port/v1"
+python ./api/tools/generate_qwen_inr_translation.py --model qwen3.8-flash-next
+```
+
+The generator reads `INR_DB` and `IND_DB` through settings in `api/.env`. It translates each `Key_IND` and `Zaehler` row with its ABDA indication context. It checkpoints completed batches and writes `api/data/inr_translation_qwen.csv` with `validation_status=pending_review`.
+
+Review every row and set:
+
+1. `validation_status=valid` when `name_en` is correct.
+2. `validation_status=corrected` and `reviewed_name_en` when correction is necessary.
+3. `validation_status=rejected` when no safe translation can be assigned.
+4. `review_source`, `review_date`, `confidence_level`, and `review_notes` for every reviewed row.
+
+Record a reviewed category batch. List every correction or rejection explicitly:
+
+```powershell
+python ./api/tools/review_qwen_inr_translation.py --prefix 01 --correction "01:1=Anesthetics" --reject 01A06:5
+```
+
+Verify review coverage and inspect context-dependent translations:
+
+```powershell
+python ./api/tools/audit_qwen_inr_translation.py --consistency-report ./api/data/inr_translation_consistency.csv
+```
+
+Import the reviewed table:
+
+```powershell
+./api/tools/import_qwen_inr_translation.ps1 -CsvPath ./api/data/inr_translation_qwen.csv -MySqlDatabase abda -MySqlHost 127.0.0.1 -MySqlUser mysqluser
+```
+
+The normal import rejects pending rows. Use `-AllowPendingReview` only for a staging import. The API uses only `valid` or `corrected` rows with nonempty reviewer metadata. It returns the German indication with `language: "de"` for pending or rejected rows. Files below `api/data` are ignored because they can contain proprietary or licensed text.
+
 ### Running the API outside of Docker
 
 The API has the following command line options:

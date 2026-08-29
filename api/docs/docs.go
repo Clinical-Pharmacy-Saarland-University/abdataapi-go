@@ -907,7 +907,7 @@ const docTemplate = `{
                         "Bearer": []
                     }
                 ],
-                "description": "Get product info (is_combination, category) for one or more PZNs.",
+                "description": "Get product info for one or more PZNs. Indications are included only when indications=true.",
                 "produces": [
                     "application/json"
                 ],
@@ -922,6 +922,19 @@ const docTemplate = `{
                         "name": "pzns",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include indications and the complete ATC hierarchy",
+                        "name": "indications",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Language for reviewed indication names and ATC labels: german or english (default: german)",
+                        "name": "lang",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -980,8 +993,15 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Include indications and the complete ATC hierarchy",
+                        "name": "indications",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
-                        "description": "Language for standard note categories and text: german or english (default: german)",
+                        "description": "Language for standard notes, reviewed indication names, and ATC labels: german or english (default: german)",
                         "name": "lang",
                         "in": "query"
                     }
@@ -1943,12 +1963,12 @@ const docTemplate = `{
             ],
             "properties": {
                 "annotation_text": {
-                    "description": "Fetch annotation evidence text",
+                    "description": "AnnotationText includes large annotation evidence keyword fields.",
                     "type": "boolean",
                     "example": true
                 },
                 "annotations": {
-                    "description": "Fetch interaction annotation",
+                    "description": "Annotations fetches compact interaction annotation metadata.",
                     "type": "boolean",
                     "example": true
                 },
@@ -2968,11 +2988,51 @@ const docTemplate = `{
                 }
             }
         },
+        "pzncontroller.ProductATCCode": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "label_en": {
+                    "type": "string"
+                },
+                "level": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "pzncontroller.ProductIndication": {
+            "type": "object",
+            "properties": {
+                "atc_codes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.ProductATCCode"
+                    }
+                },
+                "language": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "pzncontroller.ProductInfo": {
             "type": "object",
             "properties": {
                 "category": {
                     "type": "string"
+                },
+                "indications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.ProductIndication"
+                    }
                 },
                 "is_combination": {
                     "type": "boolean"
@@ -3017,6 +3077,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "type": "string"
+                    }
+                },
+                "indications": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/pzncontroller.ProductIndication"
                     }
                 },
                 "product_name": {

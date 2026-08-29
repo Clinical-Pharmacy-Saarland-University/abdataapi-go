@@ -13,8 +13,14 @@ import (
 func Migrate(db *gorm.DB) error {
 	db.Set("gorm:table_options", "ENGINE=InnoDB")
 
-	if err := db.AutoMigrate(&model.User{}, &model.UserEmailChange{}, &model.UserPwdReset{}); err != nil {
-		return fmt.Errorf("cannot migrate user models: %w", err)
+	if err := db.AutoMigrate(
+		&model.User{},
+		&model.UserEmailChange{},
+		&model.UserPwdReset{},
+		&model.WHOATCMapping{},
+		&model.INRTranslation{},
+	); err != nil {
+		return fmt.Errorf("cannot migrate database models: %w", err)
 	}
 
 	// Seed database with default admin user if no active admin user exists

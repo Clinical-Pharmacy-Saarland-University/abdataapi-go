@@ -1,0 +1,41 @@
+meta {
+  name: Product Search Indications
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{url}}/api/v1/product/search?name=Delix 2%2C5&limit=3&indications=true&lang=english
+  body: none
+  auth: inherit
+}
+
+params:query {
+  name: Delix 2%2C5
+  limit: 3
+  indications: true
+  lang: english
+}
+
+tests {
+  test("returns product search results with opt-in indications", function() {
+    const body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body.status).to.equal("success");
+    expect(Array.isArray(body.data)).to.equal(true);
+
+    const group = body.data[0];
+    expect(group.input).to.equal("Delix 2,5");
+    expect(Array.isArray(group.results)).to.equal(true);
+
+    if (group.results.length > 0) {
+      const product = group.results[0];
+      expect(product.pzn).to.be.a("string");
+      expect(Array.isArray(product.indications)).to.equal(true);
+
+      if (product.indications.length > 0) {
+        expect(product.indications[0].language).to.equal("en");
+      }
+    }
+  });
+}

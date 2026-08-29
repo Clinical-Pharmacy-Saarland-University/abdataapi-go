@@ -1,0 +1,38 @@
+meta {
+  name: PZN Product Info Indications
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{url}}/api/v1/product/info/pzns?pzns=00639943&indications=true&lang=english
+  body: none
+  auth: inherit
+}
+
+params:query {
+  pzns: 00639943
+  indications: true
+  lang: english
+}
+
+tests {
+  test("returns product info with opt-in indications", function() {
+    const body = res.getBody();
+    expect(res.getStatus()).to.equal(200);
+    expect(body.status).to.equal("success");
+    expect(Array.isArray(body.data)).to.equal(true);
+
+    const product = body.data[0];
+    expect(product.pzn).to.be.a("string");
+    expect(product.product_name).to.be.a("string");
+    expect(Array.isArray(product.indications)).to.equal(true);
+
+    if (product.indications.length > 0) {
+      const indication = product.indications[0];
+      expect(indication.name).to.be.a("string");
+      expect(indication.language).to.equal("en");
+      expect(Array.isArray(indication.atc_codes)).to.equal(true);
+    }
+  });
+}

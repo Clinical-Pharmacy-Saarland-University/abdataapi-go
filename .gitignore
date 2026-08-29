@@ -13,6 +13,7 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+__pycache__/
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
@@ -29,6 +30,8 @@ tests/.dev_env
 /api/.gocache
 /node_modules
 /outputs/interaction_overview
+/api/data/*
+!/api/data/inr_translation_qwen.csv
 /tools
 .env.integration
 .env.integration.local

@@ -84,7 +84,7 @@ const (
 		"AND PAE_DB.PZN IN (?,?)"
 
 	// GetProductInfo: product info by PZN.
-	goldenProductInfoSQL = "SELECT DISTINCT PAE_DB.PZN, FAM_DB.Produktgruppe, FAM_DB.Monopraeparat, FAM_DB.Produktname " +
+	goldenProductInfoSQL = "SELECT DISTINCT PAE_DB.PZN, FAM_DB.Key_FAM, FAM_DB.Produktgruppe, FAM_DB.Monopraeparat, FAM_DB.Produktname " +
 		"FROM PAE_DB " +
 		"RIGHT JOIN FAM_DB ON PAE_DB.Key_FAM = FAM_DB.Key_FAM " +
 		"WHERE PAE_DB.PZN IN (%s) " +
@@ -589,12 +589,12 @@ func TestGolden_GetProductInfo_Normal(t *testing.T) {
 	pc, mock, cleanup := newGoldenController(t)
 	defer cleanup()
 
-	cols := []string{"PZN", "Produktgruppe", "Monopraeparat", "Produktname"}
+	cols := []string{"PZN", "Key_FAM", "Produktgruppe", "Monopraeparat", "Produktname"}
 	// Monopraeparat 0 -> is_combination true; Produktgruppe 1 -> "Drug".
 	mock.ExpectQuery(fmtSQL(goldenProductInfoSQL, "?")).
 		WithArgs("03041347").
 		WillReturnRows(sqlmock.NewRows(cols).
-			AddRow("03041347", uint64(1), uint64(0), "Aspirin 100"))
+			AddRow("03041347", uint64(10), uint64(1), uint64(0), "Aspirin 100"))
 
 	w := serve(pc.GetProductInfo, "/product/info/pzns", "/product/info/pzns?pzns=03041347")
 
@@ -646,12 +646,12 @@ func TestGolden_GetProductInfo_MultiplePZNs(t *testing.T) {
 	pc, mock, cleanup := newGoldenController(t)
 	defer cleanup()
 
-	cols := []string{"PZN", "Produktgruppe", "Monopraeparat", "Produktname"}
+	cols := []string{"PZN", "Key_FAM", "Produktgruppe", "Monopraeparat", "Produktname"}
 	mock.ExpectQuery(fmtSQL(goldenProductInfoSQL, "?,?")).
 		WithArgs("03041347", "05538454").
 		WillReturnRows(sqlmock.NewRows(cols).
-			AddRow("03041347", uint64(1), uint64(0), "Aspirin").
-			AddRow("05538454", uint64(2), uint64(1), "SomeDevice"))
+			AddRow("03041347", uint64(10), uint64(1), uint64(0), "Aspirin").
+			AddRow("05538454", uint64(11), uint64(2), uint64(1), "SomeDevice"))
 
 	w := serve(pc.GetProductInfo, "/product/info/pzns", "/product/info/pzns?pzns=03041347,05538454")
 
@@ -690,7 +690,7 @@ func TestGolden_GetProductInfo_NotFound(t *testing.T) {
 	pc, mock, cleanup := newGoldenController(t)
 	defer cleanup()
 
-	cols := []string{"PZN", "Produktgruppe", "Monopraeparat", "Produktname"}
+	cols := []string{"PZN", "Key_FAM", "Produktgruppe", "Monopraeparat", "Produktname"}
 	mock.ExpectQuery(fmtSQL(goldenProductInfoSQL, "?")).
 		WithArgs("03041347").
 		WillReturnRows(sqlmock.NewRows(cols))
