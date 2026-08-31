@@ -926,13 +926,13 @@ const docTemplate = `{
                     {
                         "type": "boolean",
                         "default": false,
-                        "description": "Include indications and the complete ATC hierarchy",
+                        "description": "Include AMTS CAVE indications",
                         "name": "indications",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Language for reviewed indication names and ATC labels: german or english (default: german)",
+                        "description": "Language for AMTS CAVE indication names: german or english (default: german)",
                         "name": "lang",
                         "in": "query"
                     }
@@ -995,13 +995,13 @@ const docTemplate = `{
                     {
                         "type": "boolean",
                         "default": false,
-                        "description": "Include indications and the complete ATC hierarchy",
+                        "description": "Include AMTS CAVE indications",
                         "name": "indications",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Language for standard notes, reviewed indication names, and ATC labels: german or english (default: german)",
+                        "description": "Language for standard notes and AMTS CAVE indication names: german or english (default: german)",
                         "name": "lang",
                         "in": "query"
                     }
@@ -2988,40 +2988,6 @@ const docTemplate = `{
                 }
             }
         },
-        "pzncontroller.ProductATCCode": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "label_en": {
-                    "type": "string"
-                },
-                "level": {
-                    "type": "integer"
-                },
-                "source": {
-                    "type": "string"
-                }
-            }
-        },
-        "pzncontroller.ProductIndication": {
-            "type": "object",
-            "properties": {
-                "atc_codes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/pzncontroller.ProductATCCode"
-                    }
-                },
-                "language": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
         "pzncontroller.ProductInfo": {
             "type": "object",
             "properties": {
@@ -3031,7 +2997,7 @@ const docTemplate = `{
                 "indications": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/pzncontroller.ProductIndication"
+                        "type": "string"
                     }
                 },
                 "is_combination": {
@@ -3082,7 +3048,7 @@ const docTemplate = `{
                 "indications": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/pzncontroller.ProductIndication"
+                        "type": "string"
                     }
                 },
                 "product_name": {

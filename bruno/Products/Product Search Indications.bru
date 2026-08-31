@@ -34,7 +34,7 @@ tests {
       expect(Array.isArray(product.indications)).to.equal(true);
 
       if (product.indications.length > 0) {
-        expect(product.indications[0].language).to.equal("en");
+        expect(product.indications[0]).to.be.a("string");
       }
     }
   });

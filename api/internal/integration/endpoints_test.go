@@ -61,6 +61,23 @@ func sampleCompoundNames(t *testing.T, db *sqlx.DB, n int) []string {
 	return sampleStrings(t, db, fmt.Sprintf("SELECT DISTINCT Name FROM SNA_DB LIMIT %d", n), "compound names", n)
 }
 
+func sampleProductWithIndication(t *testing.T, db *sqlx.DB) (string, string) {
+	t.Helper()
+	var product struct {
+		PZN  string `db:"PZN"`
+		Name string `db:"Produktname"`
+	}
+	query := "SELECT p.PZN, f.Produktname FROM PAE_DB p " +
+		"JOIN FAM_DB f ON f.Key_FAM = p.Key_FAM " +
+		"JOIN IND_C i ON i.Key_FAM = p.Key_FAM " +
+		"JOIN MIN_C n ON n.Key_MIV = i.Key_MIV AND n.Sprache = 2 " +
+		"WHERE p.PZN IS NOT NULL AND f.Produktname IS NOT NULL LIMIT 1"
+	if err := db.Get(&product, query); err != nil {
+		t.Skipf("cannot sample a product with an English AMTS CAVE indication: %v", err)
+	}
+	return product.PZN, product.Name
+}
+
 // requireOK fails with the response body when the status is not 200.
 func requireOK(t *testing.T, w *httptest.ResponseRecorder) {
 	t.Helper()
@@ -218,6 +235,20 @@ func TestIntegrationProductInfo(t *testing.T) {
 	requireNoServerError(t, w)
 }
 
+func TestIntegrationProductInfoWithIndications(t *testing.T) {
+	db := dialOrSkip(t)
+	pzn, _ := sampleProductWithIndication(t, db)
+
+	w := doGET(newPZNController(db).GetProductInfo, "pzns="+pzn+"&indications=true&lang=english")
+	requireOK(t, w)
+	if !strings.Contains(w.Body.String(), `"indications":["`) {
+		t.Errorf("expected an English MIN_C indication, got: %s", w.Body.String())
+	}
+	if strings.Contains(w.Body.String(), "atc_codes") || strings.Contains(w.Body.String(), `"language"`) {
+		t.Errorf("expected concise indication output, got: %s", w.Body.String())
+	}
+}
+
 // --- Product (search / list) ------------------------------------------------------------
 // dev replaced the old product endpoints with a fuzzy name search and a paginated list.
 
@@ -230,6 +261,21 @@ func TestIntegrationProductSearch(t *testing.T) {
 	// product (200 with empty results), but the SQL must be valid against the schema.
 	w := doGET(newPZNController(db).GetProductSearch, "name="+url.QueryEscape(name))
 	requireOK(t, w)
+}
+
+func TestIntegrationProductSearchWithIndications(t *testing.T) {
+	db := dialOrSkip(t)
+	_, name := sampleProductWithIndication(t, db)
+
+	w := doGET(newPZNController(db).GetProductSearch,
+		"name="+url.QueryEscape(name)+"&limit=1&indications=true&lang=english")
+	requireOK(t, w)
+	if !strings.Contains(w.Body.String(), `"indications":["`) {
+		t.Errorf("expected an English MIN_C indication, got: %s", w.Body.String())
+	}
+	if strings.Contains(w.Body.String(), "atc_codes") || strings.Contains(w.Body.String(), `"language"`) {
+		t.Errorf("expected concise indication output, got: %s", w.Body.String())
+	}
 }
 
 func TestIntegrationProductList(t *testing.T) {

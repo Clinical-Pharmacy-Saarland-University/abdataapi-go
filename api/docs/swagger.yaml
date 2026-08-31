@@ -840,35 +840,13 @@ definitions:
           type: string
         type: array
     type: object
-  pzncontroller.ProductATCCode:
-    properties:
-      code:
-        type: string
-      label_en:
-        type: string
-      level:
-        type: integer
-      source:
-        type: string
-    type: object
-  pzncontroller.ProductIndication:
-    properties:
-      atc_codes:
-        items:
-          $ref: '#/definitions/pzncontroller.ProductATCCode'
-        type: array
-      language:
-        type: string
-      name:
-        type: string
-    type: object
   pzncontroller.ProductInfo:
     properties:
       category:
         type: string
       indications:
         items:
-          $ref: '#/definitions/pzncontroller.ProductIndication'
+          type: string
         type: array
       is_combination:
         type: boolean
@@ -901,7 +879,7 @@ definitions:
         type: array
       indications:
         items:
-          $ref: '#/definitions/pzncontroller.ProductIndication'
+          type: string
         type: array
       product_name:
         type: string
@@ -1652,12 +1630,12 @@ paths:
         required: true
         type: string
       - default: false
-        description: Include indications and the complete ATC hierarchy
+        description: Include AMTS CAVE indications
         in: query
         name: indications
         type: boolean
-      - description: 'Language for reviewed indication names and ATC labels: german
-          or english (default: german)'
+      - description: 'Language for AMTS CAVE indication names: german or english (default:
+          german)'
         in: query
         name: lang
         type: string
@@ -1702,12 +1680,12 @@ paths:
         name: notes
         type: boolean
       - default: false
-        description: Include indications and the complete ATC hierarchy
+        description: Include AMTS CAVE indications
         in: query
         name: indications
         type: boolean
-      - description: 'Language for standard notes, reviewed indication names, and
-          ATC labels: german or english (default: german)'
+      - description: 'Language for standard notes and AMTS CAVE indication names:
+          german or english (default: german)'
         in: query
         name: lang
         type: string

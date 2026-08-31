@@ -79,8 +79,8 @@ func (ac *ADRController) GetAdrsForPZNs(c *gin.Context) {
 // @Tags			Adverse Drug Reactions
 // @Produce		json
 // @Param			compound	query	[]string			true	"Compound name search terms, as repeated parameters (preferred) or a single comma-joined value"	collectionFormat(multi)	example:"metformin,metoprolol"
-// @Param			lang		query	string				false	"Language for ADR names (default: english)"		Enums(english,german,german-simple)
-// @Param			application	query	string				false	"Application filter (default: peroral)"			Enums(extern,invasive,peroral,all)
+// @Param			lang		query	string				false	"Language for ADR names (default: english)"														Enums(english,german,german-simple)
+// @Param			application	query	string				false	"Application filter (default: peroral)"															Enums(extern,invasive,peroral,all)
 // @Success		200			{array}	CompoundADRGroup	"Matching compound/formulation ADRs grouped by input"
 // @Failure		400			"Bad request (e.g. missing compound query or too many names)"
 // @Failure		500			"Internal server error"

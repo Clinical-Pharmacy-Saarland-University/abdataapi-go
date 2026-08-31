@@ -29,10 +29,7 @@ tests {
     expect(Array.isArray(product.indications)).to.equal(true);
 
     if (product.indications.length > 0) {
-      const indication = product.indications[0];
-      expect(indication.name).to.be.a("string");
-      expect(indication.language).to.equal("en");
-      expect(Array.isArray(indication.atc_codes)).to.equal(true);
+      expect(product.indications[0]).to.be.a("string");
     }
   });
 }

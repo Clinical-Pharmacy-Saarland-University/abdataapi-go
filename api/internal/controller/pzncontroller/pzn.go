@@ -40,8 +40,8 @@ func NewPZNController(resourceHandle *handle.ResourceHandle) *PZNController {
 // @Param			name		query	string				true	"Comma-separated product name search terms; encode literal commas as %2C"	example:"Delix+2%2C5,Plavix,Ramilich"
 // @Param			limit		query	int					false	"Maximum number of products to return per input (default: 20, max: 100)"
 // @Param			notes		query	bool				false	"Include standard notes"								default(false)
-// @Param			indications	query	bool				false	"Include indications and the complete ATC hierarchy"	default(false)
-// @Param			lang		query	string				false	"Language for standard notes, reviewed indication names, and ATC labels: german or english (default: german)"
+// @Param			indications	query	bool				false	"Include AMTS CAVE indications"	default(false)
+// @Param			lang		query	string				false	"Language for standard notes and AMTS CAVE indication names: german or english (default: german)"
 // @Success		200			{array}	ProductSearchGroup	"Matching products with active compounds grouped by input"
 // @Failure		400			"Bad request (e.g. missing name)"
 // @Failure		500			"Internal server error"
@@ -104,7 +104,7 @@ type ProductSearchResult struct {
 	PZN             string              `json:"pzn"`
 	ActiveCompounds []string            `json:"active_compounds"`
 	StandardNotes   []StandardNoteGroup `json:"standard_notes,omitempty"`
-	Indications     []ProductIndication `json:"indications,omitempty"`
+	Indications     []string            `json:"indications,omitempty"`
 }
 
 func fetchProductsByNames(names []string, limit int, includeNotes bool, includeIndications bool, lang string, db *sqlx.DB) ([]ProductSearchGroup, error) {
@@ -178,7 +178,7 @@ func fetchProductsByName(name string, limit int, includeNotes bool, includeIndic
 			return nil, err
 		}
 	}
-	indicationsByFAM := map[uint64][]ProductIndication{}
+	indicationsByFAM := map[uint64][]string{}
 	if includeIndications {
 		indicationsByFAM, err = fetchIndicationsByFAM(fams, lang, db)
 		if err != nil {
@@ -648,8 +648,8 @@ func fetchActiveCompounds(pzns []string, db *sqlx.DB) ([]Compound, error) {
 // @Tags			Product
 // @Produce		json
 // @Param			pzns		query	string			true	"Comma separated string of PZNs"						example:"1234567,7654321"
-// @Param			indications	query	bool			false	"Include indications and the complete ATC hierarchy"	default(false)
-// @Param			lang		query	string			false	"Language for reviewed indication names and ATC labels: german or english (default: german)"
+// @Param			indications	query	bool			false	"Include AMTS CAVE indications"	default(false)
+// @Param			lang		query	string			false	"Language for AMTS CAVE indication names: german or english (default: german)"
 // @Success		200			{array}	ProductInfos	"List of PZNs with product info"
 // @Failure		400			"Bad request (e.g. invalid PZNs)"
 // @Failure		404			"PZN(s) not found"
@@ -686,11 +686,11 @@ func (pc *PZNController) GetProductInfo(c *gin.Context) {
 
 // ProductInfo represents information about a product
 type ProductInfo struct {
-	PZN         string              `json:"pzn"`
-	IsComb      bool                `json:"is_combination"`
-	Category    string              `json:"category"`
-	ProductName string              `json:"product_name"`
-	Indications []ProductIndication `json:"indications,omitempty"`
+	PZN         string   `json:"pzn"`
+	IsComb      bool     `json:"is_combination"`
+	Category    string   `json:"category"`
+	ProductName string   `json:"product_name"`
+	Indications []string `json:"indications,omitempty"`
 }
 
 // ProductInfos represents a list of product info for multiple PZNs
@@ -736,7 +736,7 @@ func fetchProductInfo(pzns []string, includeIndications bool, lang string, db *s
 		return nil, apierr.New(http.StatusNotFound, "PZN not found")
 	}
 
-	indicationsByFAM := map[uint64][]ProductIndication{}
+	indicationsByFAM := map[uint64][]string{}
 	if includeIndications {
 		fams := make([]uint64, 0, len(dbResults))
 		for _, dbResult := range dbResults {
@@ -771,385 +771,126 @@ func fetchProductInfo(pzns []string, includeIndications bool, lang string, db *s
 	return productInfos, nil
 }
 
-type ProductIndication struct {
-	Name     string           `json:"name"`
-	Language string           `json:"language"`
-	ATCCodes []ProductATCCode `json:"atc_codes"`
-}
-
-type ProductATCCode struct {
-	Code    string `json:"code"`
-	LabelEN string `json:"label_en,omitempty"`
-	Level   int    `json:"level,omitempty"`
-	Source  string `json:"source,omitempty"`
-}
-
 type productIndicationSeed struct {
-	KeyFAM      uint64  `db:"Key_FAM"`
-	KeyINDHaupt *string `db:"Key_IND_Haupt"`
-	KeyINDNeben *string `db:"Key_IND_Neben"`
-	KeyATC      *string `db:"Key_ATC"`
-	KeyATCA     *string `db:"Key_ATCA"`
-}
-
-type indicationRelation struct {
-	Source *string `db:"Key_IND_Quelle"`
-	Target *string `db:"Key_IND_Ziel"`
+	KeyFAM uint64 `db:"Key_FAM"`
+	KeyMIV int    `db:"Key_MIV"`
 }
 
 type indicationNameRow struct {
-	KeyIND   string  `db:"Key_IND"`
-	Name     *string `db:"indication_name"`
-	Language *string `db:"indication_language"`
+	KeyMIV    int    `db:"Key_MIV"`
+	Name      string `db:"Name"`
+	Language  int    `db:"Sprache"`
+	Preferred bool   `db:"Vorzugsbezeichnung"`
 }
 
-type atcMappingRow struct {
-	Code       string  `db:"atc_code"`
-	Level      int     `db:"level"`
-	LabelEN    *string `db:"label_en"`
-	SourceYear *int    `db:"source_year"`
-	SourceURL  *string `db:"source_url"`
-}
-
-func fetchIndicationsByFAM(fams []uint64, lang string, db *sqlx.DB) (map[uint64][]ProductIndication, error) {
-	indicationsByFAM := make(map[uint64][]ProductIndication, len(fams))
+func fetchIndicationsByFAM(fams []uint64, lang string, db *sqlx.DB) (map[uint64][]string, error) {
+	indicationsByFAM := make(map[uint64][]string, len(fams))
 	for _, fam := range fams {
-		indicationsByFAM[fam] = []ProductIndication{}
+		indicationsByFAM[fam] = []string{}
 	}
 	if len(fams) == 0 {
 		return indicationsByFAM, nil
 	}
 
-	seedQuery := squirrel.Select(
-		"Key_FAM",
-		"Key_IND_Haupt",
-		"Key_IND_Neben",
-		"Key_ATC",
-		"Key_ATCA").
-		Distinct().
-		From("FAM_DB").
+	seedQuery := squirrel.Select("Key_FAM", "Key_MIV").
+		From("IND_C").
 		Where(squirrel.Eq{"Key_FAM": fams}).
-		OrderBy("Key_FAM")
+		OrderBy("Key_FAM", "Rang_FI", "Zaehler")
 	query, args, _ := seedQuery.ToSql()
 
 	var seeds []productIndicationSeed
 	if err := db.Select(&seeds, query, args...); err != nil {
-		return nil, fmt.Errorf("error fetching product indication keys: %w", err)
+		return nil, fmt.Errorf("error fetching AMTS CAVE product indications: %w", err)
 	}
 
-	keysByFAM, atcByFAM, directKeys, allATC := collectIndicationSeeds(seeds)
-
-	relations, err := fetchIndicationRelations(slices.Collect(maps.Keys(directKeys)), db)
-	if err != nil {
-		return nil, err
-	}
-	expandIndicationRelations(keysByFAM, relations)
-
-	allKeys := make(map[string]struct{})
-	for _, keys := range keysByFAM {
-		for key := range keys {
-			allKeys[key] = struct{}{}
-		}
-	}
-
+	keysByFAM, allKeys := collectIndicationSeeds(seeds)
 	namesByKey, err := fetchIndicationNames(slices.Collect(maps.Keys(allKeys)), lang, db)
 	if err != nil {
 		return nil, err
 	}
 
-	atcByCode := map[string]ProductATCCode{}
-	if lang == "english" {
-		var err error
-		atcByCode, err = fetchATCMapping(slices.Collect(maps.Keys(allATC)), db)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	for fam, keys := range keysByFAM {
-		atcCodes := buildProductATCCodes(atcByFAM[fam], atcByCode)
-		sortedKeys := slices.Collect(maps.Keys(keys))
-		sort.Strings(sortedKeys)
-		for _, key := range sortedKeys {
+		for _, key := range keys {
 			name, exists := namesByKey[key]
 			if !exists || name.Name == "" {
 				continue
 			}
-			indicationsByFAM[fam] = append(indicationsByFAM[fam], ProductIndication{
-				Name:     name.Name,
-				Language: name.Language,
-				ATCCodes: atcCodes,
-			})
+			indicationsByFAM[fam] = append(indicationsByFAM[fam], name.Name)
 		}
 	}
 
 	return indicationsByFAM, nil
 }
 
-func collectIndicationSeeds(seeds []productIndicationSeed) (map[uint64]map[string]struct{}, map[uint64][]string, map[string]struct{}, map[string]struct{}) {
-	keysByFAM := make(map[uint64]map[string]struct{}, len(seeds))
-	atcByFAM := make(map[uint64][]string, len(seeds))
-	directKeys := make(map[string]struct{})
-	allATC := make(map[string]struct{})
+func collectIndicationSeeds(seeds []productIndicationSeed) (map[uint64][]int, map[int]struct{}) {
+	keysByFAM := make(map[uint64][]int)
+	seenByFAM := make(map[uint64]map[int]struct{})
+	allKeys := make(map[int]struct{})
 	for _, seed := range seeds {
-		if _, exists := keysByFAM[seed.KeyFAM]; !exists {
-			keysByFAM[seed.KeyFAM] = map[string]struct{}{}
+		if _, exists := seenByFAM[seed.KeyFAM]; !exists {
+			seenByFAM[seed.KeyFAM] = make(map[int]struct{})
 		}
-		for _, key := range []*string{seed.KeyINDHaupt, seed.KeyINDNeben} {
-			if key == nil || strings.TrimSpace(*key) == "" {
-				continue
-			}
-			value := strings.TrimSpace(*key)
-			keysByFAM[seed.KeyFAM][value] = struct{}{}
-			directKeys[value] = struct{}{}
+		if _, exists := seenByFAM[seed.KeyFAM][seed.KeyMIV]; exists {
+			continue
 		}
-		for _, code := range []*string{seed.KeyATC, seed.KeyATCA} {
-			if code == nil || strings.TrimSpace(*code) == "" {
-				continue
-			}
-			value := strings.ToUpper(strings.TrimSpace(*code))
-			atcByFAM[seed.KeyFAM] = appendUniqueString(atcByFAM[seed.KeyFAM], value)
-			for _, hierarchyCode := range atcHierarchyCodes(value) {
-				allATC[hierarchyCode] = struct{}{}
-			}
-		}
+		seenByFAM[seed.KeyFAM][seed.KeyMIV] = struct{}{}
+		keysByFAM[seed.KeyFAM] = append(keysByFAM[seed.KeyFAM], seed.KeyMIV)
+		allKeys[seed.KeyMIV] = struct{}{}
 	}
 
-	return keysByFAM, atcByFAM, directKeys, allATC
-}
-
-func expandIndicationRelations(keysByFAM map[uint64]map[string]struct{}, relations []indicationRelation) {
-	for _, relation := range relations {
-		for fam, direct := range keysByFAM {
-			for key := range direct {
-				if relation.Source != nil && *relation.Source == key && relation.Target != nil {
-					direct[strings.TrimSpace(*relation.Target)] = struct{}{}
-				}
-				if relation.Target != nil && *relation.Target == key && relation.Source != nil {
-					direct[strings.TrimSpace(*relation.Source)] = struct{}{}
-				}
-			}
-			keysByFAM[fam] = direct
-		}
-	}
-}
-
-func fetchIndicationRelations(keys []string, db *sqlx.DB) ([]indicationRelation, error) {
-	if len(keys) == 0 {
-		return []indicationRelation{}, nil
-	}
-	sort.Strings(keys)
-	queryBuilder := squirrel.Select("Key_IND_Quelle", "Key_IND_Ziel").
-		Distinct().
-		From("INV_DB").
-		Where(squirrel.Or{
-			squirrel.Eq{"Key_IND_Quelle": keys},
-			squirrel.Eq{"Key_IND_Ziel": keys},
-		}).
-		OrderBy("Key_IND_Quelle", "Key_IND_Ziel")
-	query, args, _ := queryBuilder.ToSql()
-
-	var rows []indicationRelation
-	if err := db.Select(&rows, query, args...); err != nil {
-		return nil, fmt.Errorf("error fetching indication hierarchy links: %w", err)
-	}
-
-	return rows, nil
+	return keysByFAM, allKeys
 }
 
 type localizedIndicationName struct {
-	Name     string
-	Language string
+	Name string
 }
 
-func fetchIndicationNames(keys []string, lang string, db *sqlx.DB) (map[string]localizedIndicationName, error) {
-	namesByKey := make(map[string]localizedIndicationName, len(keys))
+func fetchIndicationNames(keys []int, lang string, db *sqlx.DB) (map[int]localizedIndicationName, error) {
+	namesByKey := make(map[int]localizedIndicationName, len(keys))
 	if len(keys) == 0 {
 		return namesByKey, nil
 	}
-	sort.Strings(keys)
-	queryBuilder := squirrel.Select("IND_DB.Key_IND")
+	sort.Ints(keys)
+	languages := []int{1}
 	if lang == "english" {
-		queryBuilder = queryBuilder.Columns(
-			"COALESCE(NULLIF(TRANSLATION_INR_C.reviewed_name_en, ''), TRANSLATION_INR_C.name_en, INR_DB.Name, IND_DB.Name) AS indication_name",
-			"CASE WHEN TRANSLATION_INR_C.name_en IS NULL THEN 'de' ELSE 'en' END AS indication_language")
-	} else {
-		queryBuilder = queryBuilder.Columns(
-			"COALESCE(INR_DB.Name, IND_DB.Name) AS indication_name",
-			"'de' AS indication_language")
+		languages = append(languages, 2)
 	}
-	queryBuilder = queryBuilder.
-		Distinct().
-		From("IND_DB").
-		LeftJoin("INR_DB ON INR_DB.Key_IND = IND_DB.Key_IND").
-		Where(squirrel.Eq{"IND_DB.Key_IND": keys}).
-		OrderBy("IND_DB.Key_IND", "INR_DB.Zaehler")
-	if lang == "english" {
-		queryBuilder = queryBuilder.LeftJoin(
-			"TRANSLATION_INR_C ON TRANSLATION_INR_C.key_ind = INR_DB.Key_IND " +
-				"AND TRANSLATION_INR_C.zaehler = INR_DB.Zaehler " +
-				"AND (TRANSLATION_INR_C.validation_status = 'valid' " +
-				"OR (TRANSLATION_INR_C.validation_status = 'corrected' " +
-				"AND NULLIF(TRANSLATION_INR_C.reviewed_name_en, '') IS NOT NULL)) " +
-				"AND TRANSLATION_INR_C.review_source IS NOT NULL " +
-				"AND TRANSLATION_INR_C.review_date IS NOT NULL")
-	}
+	queryBuilder := squirrel.Select("Key_MIV", "Name", "Sprache", "Vorzugsbezeichnung").
+		From("MIN_C").
+		Where(squirrel.Eq{"Key_MIV": keys, "Sprache": languages}).
+		OrderBy("Key_MIV", "Sprache", "Vorzugsbezeichnung DESC", "Zaehler")
 	query, args, _ := queryBuilder.ToSql()
 
 	var rows []indicationNameRow
 	if err := db.Select(&rows, query, args...); err != nil {
-		if lang == "english" && isMissingINRTranslationTable(err) {
-			return fetchIndicationNames(keys, "german", db)
-		}
-		return nil, fmt.Errorf("error fetching indication names: %w", err)
+		return nil, fmt.Errorf("error fetching AMTS CAVE indication names: %w", err)
 	}
 
+	germanNames := make(map[int]string, len(keys))
+	englishNames := make(map[int]string, len(keys))
 	for _, row := range rows {
-		if row.Name == nil {
+		switch row.Language {
+		case 1:
+			if _, exists := germanNames[row.KeyMIV]; !exists {
+				germanNames[row.KeyMIV] = row.Name
+			}
+		case 2:
+			if _, exists := englishNames[row.KeyMIV]; !exists {
+				englishNames[row.KeyMIV] = row.Name
+			}
+		}
+	}
+	for _, key := range keys {
+		if lang == "english" && englishNames[key] != "" {
+			namesByKey[key] = localizedIndicationName{Name: englishNames[key]}
 			continue
 		}
-		if _, exists := namesByKey[row.KeyIND]; exists {
-			continue
+		if germanNames[key] != "" {
+			namesByKey[key] = localizedIndicationName{Name: germanNames[key]}
 		}
-		language := "de"
-		if row.Language != nil && *row.Language == "en" {
-			language = "en"
-		}
-		namesByKey[row.KeyIND] = localizedIndicationName{Name: *row.Name, Language: language}
 	}
 
 	return namesByKey, nil
-}
-
-func isMissingINRTranslationTable(err error) bool {
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "translation_inr_c") &&
-		(strings.Contains(message, "doesn't exist") || strings.Contains(message, "does not exist") ||
-			strings.Contains(message, "no such table"))
-}
-
-func fetchATCMapping(codes []string, db *sqlx.DB) (map[string]ProductATCCode, error) {
-	atcByCode := make(map[string]ProductATCCode, len(codes))
-	if len(codes) == 0 {
-		return atcByCode, nil
-	}
-	sort.Strings(codes)
-	queryBuilder := squirrel.Select(
-		"atc_code",
-		"level",
-		"label_en",
-		"source_year",
-		"source_url").
-		From("who_atc_mapping").
-		Where(squirrel.Eq{"atc_code": codes}).
-		OrderBy("atc_code")
-	query, args, _ := queryBuilder.ToSql()
-
-	var rows []atcMappingRow
-	if err := db.Select(&rows, query, args...); err != nil {
-		if isMissingATCMappingTable(err) {
-			return atcByCode, nil
-		}
-		return nil, fmt.Errorf("error fetching WHO ATC mapping: %w", err)
-	}
-
-	for _, row := range rows {
-		code := ProductATCCode{
-			Code:  row.Code,
-			Level: row.Level,
-		}
-		if row.LabelEN != nil {
-			code.LabelEN = *row.LabelEN
-		}
-		if row.SourceURL != nil {
-			code.Source = *row.SourceURL
-		}
-		if code.Source == "" && row.SourceYear != nil {
-			code.Source = fmt.Sprintf("WHO ATC/DDD Index %d", *row.SourceYear)
-		}
-		atcByCode[row.Code] = code
-	}
-
-	return atcByCode, nil
-}
-
-func buildProductATCCodes(codes []string, atcByCode map[string]ProductATCCode) []ProductATCCode {
-	uniqueCodes := make(map[string]struct{}, len(codes)*5)
-	for _, code := range codes {
-		for _, hierarchyCode := range atcHierarchyCodes(code) {
-			uniqueCodes[hierarchyCode] = struct{}{}
-		}
-	}
-
-	hierarchyCodes := slices.Collect(maps.Keys(uniqueCodes))
-	sort.Slice(hierarchyCodes, func(i, j int) bool {
-		leftLevel := atcLevel(hierarchyCodes[i])
-		rightLevel := atcLevel(hierarchyCodes[j])
-		if leftLevel == rightLevel {
-			return hierarchyCodes[i] < hierarchyCodes[j]
-		}
-		return leftLevel < rightLevel
-	})
-
-	result := make([]ProductATCCode, 0, len(hierarchyCodes))
-	for _, code := range hierarchyCodes {
-		if atc, exists := atcByCode[code]; exists {
-			result = append(result, atc)
-			continue
-		}
-		result = append(result, ProductATCCode{Code: code, Level: atcLevel(code)})
-	}
-	return result
-}
-
-func atcHierarchyCodes(code string) []string {
-	code = strings.ToUpper(strings.TrimSpace(code))
-	if code == "" {
-		return []string{}
-	}
-
-	lengths := []int{1, 3, 4, 5, 7}
-	result := make([]string, 0, len(lengths))
-	for _, length := range lengths {
-		if length > len(code) {
-			break
-		}
-		result = append(result, code[:length])
-	}
-	return result
-}
-
-func atcLevel(code string) int {
-	switch len(strings.TrimSpace(code)) {
-	case 1:
-		return 1
-	case 3:
-		return 2
-	case 4:
-		return 3
-	case 5:
-		return 4
-	case 7:
-		return 5
-	default:
-		return 0
-	}
-}
-
-func appendUniqueString(values []string, value string) []string {
-	for _, existing := range values {
-		if existing == value {
-			return values
-		}
-	}
-	return append(values, value)
-}
-
-func isMissingATCMappingTable(err error) bool {
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "doesn't exist") ||
-		strings.Contains(message, "no such table") ||
-		strings.Contains(message, "unknown table")
 }
 
 // STANDARD NOTES

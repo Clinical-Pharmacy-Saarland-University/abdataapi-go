@@ -240,32 +240,22 @@ func TestGetProductInfo_WithIndications(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(productCols).
 			AddRow("05538454", uint64(10), uint64(1), uint64(1), "SomeProduct"))
 
-	seedCols := []string{"Key_FAM", "Key_IND_Haupt", "Key_IND_Neben", "Key_ATC", "Key_ATCA"}
-	mock.ExpectQuery("FROM FAM_DB").
+	seedCols := []string{"Key_FAM", "Key_MIV"}
+	mock.ExpectQuery("FROM IND_C").
 		WillReturnRows(sqlmock.NewRows(seedCols).
-			AddRow(uint64(10), "02A01", "03B", "N02AA01", "N02AA59"))
+			AddRow(uint64(10), 100).
+			AddRow(uint64(10), 100).
+			AddRow(uint64(10), 200).
+			AddRow(uint64(10), 300))
 
-	relationCols := []string{"Key_IND_Quelle", "Key_IND_Ziel"}
-	mock.ExpectQuery("FROM INV_DB").
-		WillReturnRows(sqlmock.NewRows(relationCols).
-			AddRow("02A", "02A01"))
-
-	nameCols := []string{"Key_IND", "indication_name", "indication_language"}
-	mock.ExpectQuery("FROM IND_DB").
+	nameCols := []string{"Key_MIV", "Name", "Sprache", "Vorzugsbezeichnung"}
+	mock.ExpectQuery("FROM MIN_C").
 		WillReturnRows(sqlmock.NewRows(nameCols).
-			AddRow("02A", "Opioids", "en").
-			AddRow("02A01", "Morphine-type opioids", "en").
-			AddRow("03B", "Weitere Indikation", "de"))
-
-	atcCols := []string{"atc_code", "level", "label_en", "source_year", "source_url"}
-	mock.ExpectQuery("FROM who_atc_mapping").
-		WillReturnRows(sqlmock.NewRows(atcCols).
-			AddRow("N", 1, "nervous system", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02", 2, "analgesics", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02A", 3, "opioids", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02AA", 4, "natural opium alkaloids", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02AA01", 5, "morphine", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02AA59", 5, "codeine, combinations excl. psycholeptics", 2026, "https://atcddd.fhi.no/atc_ddd_index/"))
+			AddRow(100, "Opioide", 1, true).
+			AddRow(100, "Opioids", 2, false).
+			AddRow(200, "Morphinartige Opioide", 1, true).
+			AddRow(200, "Morphine-type opioids", 2, false).
+			AddRow(300, "Weitere Indikation", 1, true))
 
 	r := gin.New()
 	r.GET("/product/info/pzns", controller.GetProductInfo)
@@ -290,26 +280,14 @@ func TestGetProductInfo_WithIndications(t *testing.T) {
 	if len(got.Data[0].Indications) != 3 {
 		t.Fatalf("expected 3 indications, got %#v", got.Data[0].Indications)
 	}
-	if got.Data[0].Indications[0].Language != "en" {
-		t.Errorf("indication language = %q, want en", got.Data[0].Indications[0].Language)
+	if got.Data[0].Indications[0] != "Opioids" {
+		t.Errorf("indication name = %q, want Opioids", got.Data[0].Indications[0])
 	}
-	if got.Data[0].Indications[0].Name != "Opioids" {
-		t.Errorf("indication name = %q, want Opioids", got.Data[0].Indications[0].Name)
+	if got.Data[0].Indications[2] != "Weitere Indikation" {
+		t.Errorf("fallback indication name = %q, want Weitere Indikation", got.Data[0].Indications[2])
 	}
-	if got.Data[0].Indications[2].Language != "de" {
-		t.Errorf("fallback indication language = %q, want de", got.Data[0].Indications[2].Language)
-	}
-	if len(got.Data[0].Indications[0].ATCCodes) != 6 {
-		t.Fatalf("expected 6 ATC hierarchy codes, got %#v", got.Data[0].Indications[0].ATCCodes)
-	}
-	expectedCodes := []string{"N", "N02", "N02A", "N02AA", "N02AA01", "N02AA59"}
-	for index, expectedCode := range expectedCodes {
-		if got.Data[0].Indications[0].ATCCodes[index].Code != expectedCode {
-			t.Errorf("ATC code at index %d = %q, want %q", index, got.Data[0].Indications[0].ATCCodes[index].Code, expectedCode)
-		}
-	}
-	if got.Data[0].Indications[0].ATCCodes[4].LabelEN != "morphine" {
-		t.Errorf("level-5 label_en = %q, want morphine", got.Data[0].Indications[0].ATCCodes[4].LabelEN)
+	if strings.Contains(w.Body.String(), "atc_codes") {
+		t.Errorf("expected ATC data to be omitted, got %s", w.Body.String())
 	}
 
 	if merr := mock.ExpectationsWereMet(); merr != nil {
@@ -317,7 +295,7 @@ func TestGetProductInfo_WithIndications(t *testing.T) {
 	}
 }
 
-func TestGetProductInfo_WithIndicationsMissingATCMapping(t *testing.T) {
+func TestGetProductInfo_IndicationsContainNoATCData(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	controller, mock, cleanup := newPZNTestController(t)
@@ -329,18 +307,14 @@ func TestGetProductInfo_WithIndicationsMissingATCMapping(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows(productCols).
 			AddRow("05538454", uint64(10), uint64(1), uint64(1), "SomeProduct"))
 
-	seedCols := []string{"Key_FAM", "Key_IND_Haupt", "Key_IND_Neben", "Key_ATC", "Key_ATCA"}
-	mock.ExpectQuery("FROM FAM_DB").
+	seedCols := []string{"Key_FAM", "Key_MIV"}
+	mock.ExpectQuery("FROM IND_C").
 		WillReturnRows(sqlmock.NewRows(seedCols).
-			AddRow(uint64(10), "02A01", nil, "N02AA01", nil))
-	mock.ExpectQuery("FROM INV_DB").
-		WillReturnRows(sqlmock.NewRows([]string{"Key_IND_Quelle", "Key_IND_Ziel"}))
-	mock.ExpectQuery("FROM IND_DB").
-		WillReturnRows(sqlmock.NewRows([]string{"Key_IND", "indication_name", "indication_language"}).
-			AddRow("02A01", "Morphine-type opioids", "en"))
-	mock.ExpectQuery("FROM who_atc_mapping").
-		WillReturnRows(sqlmock.NewRows([]string{"atc_code", "level", "label_en", "source_year", "source_url"}))
-
+			AddRow(uint64(10), 100))
+	mock.ExpectQuery("FROM MIN_C").
+		WillReturnRows(sqlmock.NewRows([]string{"Key_MIV", "Name", "Sprache", "Vorzugsbezeichnung"}).
+			AddRow(100, "Morphinartige Opioide", 1, true).
+			AddRow(100, "Morphine-type opioids", 2, false))
 	r := gin.New()
 	r.GET("/product/info/pzns", controller.GetProductInfo)
 
@@ -353,11 +327,8 @@ func TestGetProductInfo_WithIndicationsMissingATCMapping(t *testing.T) {
 	}
 
 	body := w.Body.String()
-	if !strings.Contains(body, `"code":"N02AA01"`) {
-		t.Errorf("expected ATC code without label, got %s", body)
-	}
-	if strings.Contains(body, "label_en") {
-		t.Errorf("expected missing label to be omitted, got %s", body)
+	if strings.Contains(body, "atc") || strings.Contains(body, "label_en") {
+		t.Errorf("expected indication output without ATC data, got %s", body)
 	}
 
 	if merr := mock.ExpectationsWereMet(); merr != nil {
@@ -382,23 +353,14 @@ func TestGetProductSearch_WithIndications(t *testing.T) {
 	mock.ExpectQuery("FROM FAI_DB").
 		WillReturnRows(compoundRows)
 
-	seedCols := []string{"Key_FAM", "Key_IND_Haupt", "Key_IND_Neben", "Key_ATC", "Key_ATCA"}
-	mock.ExpectQuery("FROM FAM_DB").
+	seedCols := []string{"Key_FAM", "Key_MIV"}
+	mock.ExpectQuery("FROM IND_C").
 		WillReturnRows(sqlmock.NewRows(seedCols).
-			AddRow(uint64(10), "02A01", nil, "N02AA01", nil))
-	mock.ExpectQuery("FROM INV_DB").
-		WillReturnRows(sqlmock.NewRows([]string{"Key_IND_Quelle", "Key_IND_Ziel"}))
-	mock.ExpectQuery("FROM IND_DB").
-		WillReturnRows(sqlmock.NewRows([]string{"Key_IND", "indication_name", "indication_language"}).
-			AddRow("02A01", "Morphine-type opioids", "en"))
-	mock.ExpectQuery("FROM who_atc_mapping").
-		WillReturnRows(sqlmock.NewRows([]string{"atc_code", "level", "label_en", "source_year", "source_url"}).
-			AddRow("N", 1, "nervous system", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02", 2, "analgesics", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02A", 3, "opioids", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02AA", 4, "natural opium alkaloids", 2026, "https://atcddd.fhi.no/atc_ddd_index/").
-			AddRow("N02AA01", 5, "morphine", 2026, "https://atcddd.fhi.no/atc_ddd_index/"))
-
+			AddRow(uint64(10), 100))
+	mock.ExpectQuery("FROM MIN_C").
+		WillReturnRows(sqlmock.NewRows([]string{"Key_MIV", "Name", "Sprache", "Vorzugsbezeichnung"}).
+			AddRow(100, "Morphinartige Opioide", 1, true).
+			AddRow(100, "Morphine-type opioids", 2, false))
 	r := gin.New()
 	r.GET("/product/search", controller.GetProductSearch)
 
@@ -412,14 +374,14 @@ func TestGetProductSearch_WithIndications(t *testing.T) {
 	if !strings.Contains(w.Body.String(), `"indications"`) {
 		t.Errorf("expected indications in product search response, got %s", w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), `"name":"Morphine-type opioids","language":"en"`) {
-		t.Errorf("expected reviewed English indication, got %s", w.Body.String())
+	if !strings.Contains(w.Body.String(), `"indications":["Morphine-type opioids"]`) {
+		t.Errorf("expected English MIN_C indication, got %s", w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), `"label_en":"morphine"`) {
-		t.Errorf("expected WHO ATC label, got %s", w.Body.String())
+	if strings.Contains(w.Body.String(), `"language"`) {
+		t.Errorf("expected indication output without a language field, got %s", w.Body.String())
 	}
-	if !strings.Contains(w.Body.String(), `"code":"N02AA","label_en":"natural opium alkaloids","level":4`) {
-		t.Errorf("expected intermediate WHO ATC level, got %s", w.Body.String())
+	if strings.Contains(w.Body.String(), "atc_codes") {
+		t.Errorf("expected ATC data to be omitted, got %s", w.Body.String())
 	}
 
 	if merr := mock.ExpectationsWereMet(); merr != nil {
